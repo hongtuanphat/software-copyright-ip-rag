@@ -64,6 +64,7 @@ def parse_law_text(
     in_distractor_zone = False
 
     def flush():
+        nonlocal current_article, current_body_lines
         if current_article is None:
             return
         body = "\n".join(current_body_lines).strip()
@@ -84,12 +85,15 @@ def parse_law_text(
                 source_url=source_url,
             )
         )
+        current_article = None
+        current_body_lines = []
 
     for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
         if DISTRACTOR_MARKER in stripped:
+            flush()
             in_distractor_zone = True
             continue
         m = ARTICLE_RE.match(stripped)
