@@ -2,14 +2,16 @@
 ingestion/chunker.py
 
 Tách văn bản luật thành các khối dữ liệu (Provision) theo từng Điều/Khoản.
+Hỗ trợ tách sâu xuống cấp Khoản (Clause Chunking) ở Tuần 2.
 """
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from typing import Optional
 
 ARTICLE_RE = re.compile(r"^Điều\s+(\d+[a-zà-ỹ]*)\.\s*(.+)$", re.IGNORECASE)
+CLAUSE_RE = re.compile(r"^(\d+)\.\s+(.*)$")
 DISTRACTOR_MARKER = "DISTRACTOR"
 
 
@@ -44,7 +46,7 @@ def parse_law_text(
     source_url: str,
     topic_in_scope: str = "quyen_tac_gia_ctmt",
 ) -> list[Provision]:
-    """Phân tích văn bản luật thô và tách thành danh sách các Provision.
+    """Phân tích văn bản luật thô và tách thành danh sách các Provision cấp Khoản/Điều.
 
     Args:
         raw_text: Nội dung văn bản luật thô.
@@ -60,33 +62,81 @@ def parse_law_text(
 
     current_article: Optional[str] = None
     current_title: str = ""
-    current_body_lines: list[str] = []
+    current_article_lines: list[str] = []
     in_distractor_zone = False
 
+    def process_article(art_no: str, art_title: str, body_lines: list[str], is_dist: bool):
+        if not art_no or not body_lines:
+            return
+        
+        topic = _guess_topic(art_title) if is_dist else topic_in_scope
+        sanitized_code = law_code.replace("/", "-")
+        
+        # Kiểm tra xem Điều có phân tách các Khoản bằng '1.', '2.', '3.' hay không
+        clause_blocks: list[tuple[Optional[str], list[str]]] = []
+        curr_clause_no: Optional[str] = None
+        curr_clause_lines: list[str] = []
+
+        for b_line in body_lines:
+            c_match = CLAUSE_RE.match(b_line)
+            if c_match:
+                if curr_clause_lines or curr_clause_no is not None:
+                    clause_blocks.append((curr_clause_no, curr_clause_lines))
+                curr_clause_no = c_match.group(1)
+                curr_clause_lines = [b_line]
+            else:
+                curr_clause_lines.append(b_line)
+        
+        if curr_clause_lines or curr_clause_no is not None:
+            clause_blocks.append((curr_clause_no, curr_clause_lines))
+
+        # Tạo Provision cho từng khối Khoản (hoặc cả Điều nếu không chia Khoản)
+        if len(clause_blocks) == 1 and clause_blocks[0][0] is None:
+            c_no, c_lines = clause_blocks[0]
+            body_text = "\n".join(c_lines).strip()
+            if body_text:
+                pid = f"{sanitized_code}_Art{art_no}"
+                provisions.append(
+                    Provision(
+                        provision_id=pid,
+                        law_code=law_code,
+                        article_no=art_no,
+                        clause_no=None,
+                        title=art_title,
+                        text=body_text,
+                        topic=topic,
+                        is_distractor=is_dist,
+                        source_url=source_url,
+                    )
+                )
+        else:
+            for c_no, c_lines in clause_blocks:
+                body_text = "\n".join(c_lines).strip()
+                if not body_text:
+                    continue
+                clause_suffix = f"_Kh{c_no}" if c_no else ""
+                pid = f"{sanitized_code}_Art{art_no}{clause_suffix}"
+                provisions.append(
+                    Provision(
+                        provision_id=pid,
+                        law_code=law_code,
+                        article_no=art_no,
+                        clause_no=c_no,
+                        title=art_title,
+                        text=body_text,
+                        topic=topic,
+                        is_distractor=is_dist,
+                        source_url=source_url,
+                    )
+                )
+
     def flush():
-        nonlocal current_article, current_body_lines
-        if current_article is None:
-            return
-        body = "\n".join(current_body_lines).strip()
-        if not body:
-            return
-        topic = _guess_topic(current_title) if in_distractor_zone else topic_in_scope
-        pid = f"{law_code.replace('/', '-')}_Art{current_article}"
-        provisions.append(
-            Provision(
-                provision_id=pid,
-                law_code=law_code,
-                article_no=current_article,
-                clause_no=None,
-                title=current_title,
-                text=body,
-                topic=topic,
-                is_distractor=in_distractor_zone,
-                source_url=source_url,
-            )
-        )
+        nonlocal current_article, current_title, current_article_lines
+        if current_article is not None and current_article_lines:
+            process_article(current_article, current_title, current_article_lines, in_distractor_zone)
         current_article = None
-        current_body_lines = []
+        current_title = ""
+        current_article_lines = []
 
     for line in lines:
         stripped = line.strip()
@@ -101,9 +151,9 @@ def parse_law_text(
             flush()
             current_article = m.group(1)
             current_title = m.group(2).strip()
-            current_body_lines = []
+            current_article_lines = []
         else:
-            current_body_lines.append(stripped)
+            current_article_lines.append(stripped)
     flush()
     return provisions
 
@@ -129,7 +179,8 @@ if __name__ == "__main__":
         law_code=config.LAW_CODE,
         source_url="https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm",
     )
-    print(f"Đã tách được {len(result)} provisions:")
+    print(f"Đã tách được {len(result)} provisions (cấp Khoản/Điều):")
     for p in result:
         flag = "[DISTRACTOR]" if p.is_distractor else ""
-        print(f"  - Điều {p.article_no}: {p.title} {flag}")
+        c_str = f" Khoản {p.clause_no}" if p.clause_no else ""
+        print(f"  - Điều {p.article_no}{c_str}: {p.title} ({p.provision_id}) {flag}")

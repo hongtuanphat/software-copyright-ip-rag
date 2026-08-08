@@ -62,6 +62,28 @@ b) Phân phối lần tiếp theo, nhập khẩu để phân phối đối với
 1. Quyền nhân thân quy định tại các khoản 1, 2 và 4 Điều 19 của Luật này được bảo hộ vô thời hạn.
 2. Quyền nhân thân quy định tại khoản 3 Điều 19 và quyền tài sản quy định tại Điều 20 của Luật này có thời hạn bảo hộ như sau: tác phẩm điện ảnh, nhiếp ảnh, mỹ thuật ứng dụng, tác phẩm khuyết danh có thời hạn bảo hộ là bảy mươi lăm năm kể từ khi tác phẩm được công bố lần đầu tiên; đối với tác phẩm không thuộc loại hình trên (bao gồm chương trình máy tính) thời hạn bảo hộ là suốt cuộc đời tác giả và năm mươi năm tiếp theo năm tác giả chết.
 
+Điều 37. Chủ sở hữu quyền tác giả là tác giả
+Tác giả sử dụng thời gian, tài chính, cơ sở vật chất - kỹ thuật của mình để sáng tạo ra tác phẩm có các quyền nhân thân quy định tại Điều 19 và các quyền tài sản quy định tại Điều 20 của Luật này.
+
+Điều 38. Chủ sở hữu quyền tác giả là các đồng tác giả
+1. Các đồng tác giả sử dụng thời gian, tài chính, cơ sở vật chất - kỹ thuật của mình để cùng sáng tạo ra tác phẩm có chung các quyền quy định tại Điều 19 và Điều 20 của Luật này đối với tác phẩm đó.
+2. Đồng tác giả sáng tạo ra tác phẩm quy định tại khoản 1 Điều này, nếu có phần riêng biệt có thể tách ra sử dụng độc lập mà không làm phương hại đến phần của các đồng tác giả khác thì có các quyền quy định tại Điều 19 và Điều 20 của Luật này đối với phần riêng biệt đó.
+
+Điều 39. Chủ sở hữu quyền tác giả là tổ chức, cá nhân giao nhiệm vụ hoặc giao kết hợp đồng
+1. Tổ chức giao nhiệm vụ sáng tạo tác phẩm cho tác giả là người thuộc tổ chức mình là chủ sở hữu các quyền quy định tại Điều 20 và khoản 3 Điều 19 của Luật này, trừ trường hợp có thỏa thuận khác.
+2. Tổ chức, cá nhân giao kết hợp đồng với tác giả sáng tạo ra tác phẩm là chủ sở hữu các quyền quy định tại Điều 20 và khoản 3 Điều 19 của Luật này, trừ trường hợp có thỏa thuận khác.
+
+Điều 40. Chủ sở hữu quyền tác giả là người được thừa kế
+Tổ chức, cá nhân được thừa kế quyền tác giả theo quy định của pháp luật về thừa kế là chủ sở hữu các quyền quy định tại Điều 20 và khoản 3 Điều 19 của Luật này.
+
+Điều 41. Chủ sở hữu quyền tác giả là người được chuyển giao quyền
+1. Tổ chức, cá nhân được chuyển giao một, một số hoặc toàn bộ các quyền quy định tại Điều 20 và khoản 3 Điều 19 của Luật này theo hợp đồng là chủ sở hữu quyền tác giả.
+2. Tổ chức, cá nhân quản lý tác phẩm khuyết danh được hưởng quyền của chủ sở hữu cho đến khi danh tính của tác giả được xác định.
+
+Điều 42. Chủ sở hữu quyền tác giả là Nhà nước
+1. Nhà nước là chủ sở hữu quyền tác giả đối với các tác phẩm sau đây: Tác phẩm khuyết danh, trừ trường hợp quy định tại khoản 2 Điều 41 của Luật này; Tác phẩm còn trong thời hạn bảo hộ mà chủ sở hữu quyền tác giả chết không có người thừa kế, người thừa kế từ chối nhận di sản hoặc không được quyền nhận di sản; Tác phẩm được chủ sở hữu quyền tác giả chuyển giao quyền sở hữu cho Nhà nước.
+2. Chính phủ quy định chi tiết việc sử dụng tác phẩm thuộc sở hữu nhà nước.
+
 <!-- ===== PHẦN NHIỄU / DISTRACTOR — KHÔNG dùng để sinh câu trả lời, chỉ để test cơ chế từ chối ===== -->
 
 Điều 58. Điều kiện chung đối với sáng chế được bảo hộ
@@ -86,3 +108,13 @@ Nhãn hiệu được bảo hộ nếu đáp ứng các điều kiện sau đây
 
 Điều 73. Dấu hiệu không được bảo hộ với danh nghĩa nhãn hiệu
 Các dấu hiệu sau đây không được bảo hộ với danh nghĩa nhãn hiệu: dấu hiệu trùng hoặc tương tự đến mức gây nhầm lẫn với Quốc kỳ, Quốc huy, Quốc ca; dấu hiệu trùng hoặc tương tự với biểu tượng, cờ, huy hiệu của cơ quan nhà nước, tổ chức chính trị nếu không được cho phép; dấu hiệu gây nhầm lẫn về nguồn gốc, tính năng, công dụng, chất lượng của hàng hóa, dịch vụ; dấu hiệu chứa bản sao tác phẩm, trừ trường hợp được phép của chủ sở hữu tác phẩm đó.
+
+Điều 74. Khả năng phân biệt của nhãn hiệu
+1. Nhãn hiệu được coi là có khả năng phân biệt nếu được tạo thành từ một hoặc nhiều yếu tố dễ nhận biết, dễ nhớ hoặc từ nhiều yếu tố kết hợp thành một tổng thể dễ nhận biết, dễ nhớ.
+2. Nhãn hiệu bị coi là không có khả năng phân biệt nếu thuộc các trường hợp hình vẽ, dấu hiệu đơn giản, chữ cái, chữ số không thuộc ngôn ngữ thông dụng, hoặc dấu hiệu trùng/tương tự với nhãn hiệu đã được bảo hộ trước đó.
+
+Điều 75. Tiêu chí đánh giá nhãn hiệu nổi tiếng
+Các tiêu chí sau đây được xem xét khi đánh giá một nhãn hiệu là nổi tiếng:
+1. Số lượng người tiêu dùng liên quan đã biết đến nhãn hiệu thông qua việc mua bán, sử dụng hàng hóa, dịch vụ mang nhãn hiệu hoặc thông qua quảng cáo.
+2. Phạm vi lãnh thổ mà hàng hóa, dịch vụ mang nhãn hiệu đã được lưu thông.
+3. Doanh số từ việc bán hàng hóa hoặc cung cấp dịch vụ mang nhãn hiệu.

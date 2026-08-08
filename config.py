@@ -33,9 +33,9 @@ MONITORED_LAWS = [LAW_CODE]
 CRAWL_FREQUENCY = "monthly"
 CRAWL_DELAY_SECONDS = 3.0
 CRAWLER_USER_AGENT = (
-    "TTTN-LegalRAG-Bot/0.1 "
-    "(do an thuc tap tot nghiep, phi thuong mai; "
-    "lien he: phatht5648@ut.edu.vn)"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/122.0.0.0 Safari/537.36"
 )
 EXPIRY_WARNING_DAYS = 45
 

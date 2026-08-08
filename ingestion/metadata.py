@@ -2,6 +2,7 @@
 ingestion/metadata.py
 
 Xử lý và gán dữ liệu thuộc tính (metadata) cho các khối văn bản (Provision).
+Mở rộng ở Tuần 2: hỗ trợ đọc và đính kèm thông tin phiên bản (version_code) và kiểm tra.
 """
 from __future__ import annotations
 

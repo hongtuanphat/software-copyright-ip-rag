@@ -61,11 +61,19 @@ SAMPLE_QUESTIONS = [
 
 def build_corpus() -> list:
     """Nạp dữ liệu thô từ VBHN 67/VBHN-VPQH, tách chunks và gán metadata."""
+    import json
+
     raw_path = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
     text = raw_path.read_text(encoding="utf-8")
     provisions = parse_law_text(text, law_code=config.LAW_CODE, source_url=SOURCE_URL)
     law_meta = load_law_meta(raw_path)
     provisions = attach_effective_metadata(provisions, law_meta)
+
+    # Ghi tự động danh sách chunks mới ra data/processed/chunks.jsonl
+    with config.CHUNKS_PATH.open("w", encoding="utf-8") as f:
+        for p in provisions:
+            f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
+
     return provisions
 
 

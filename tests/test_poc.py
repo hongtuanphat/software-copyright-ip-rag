@@ -2,7 +2,7 @@
 tests/test_poc.py
 
 Kiểm thử tự động cho các thành phần cốt lõi của pipeline RAG:
-chunking, metadata, retrieval status filter, refusal gate, citation và metrics.
+chunking (cấp Điều/Khoản), metadata, retrieval status filter, refusal gate, citation và metrics.
 Chạy bộ test: pytest tests/ -v
 """
 import numpy as np
@@ -32,9 +32,25 @@ def provisions() -> list[Provision]:
 
 
 def test_chunker_splits_articles(provisions):
-    assert len(provisions) >= 10
+    assert len(provisions) == 55
     ids = [p.provision_id for p in provisions]
     assert len(ids) == len(set(ids)), "provision_id phải duy nhất"
+
+
+@pytest.mark.parametrize(
+    "art_no, expected_clause_count, expected_first_id",
+    [
+        ("22", 2, "67-VBHN-VPQH_Art22_Kh1"),
+        ("13", 2, "67-VBHN-VPQH_Art13_Kh1"),
+        ("19", 4, "67-VBHN-VPQH_Art19_Kh1"),
+        ("25", 4, "67-VBHN-VPQH_Art25_Kh1"),
+        ("39", 2, "67-VBHN-VPQH_Art39_Kh1"),
+    ],
+)
+def test_chunker_splits_clauses(provisions, art_no, expected_clause_count, expected_first_id):
+    clauses = [p for p in provisions if p.article_no == art_no and p.clause_no is not None]
+    assert len(clauses) == expected_clause_count
+    assert clauses[0].provision_id == expected_first_id
 
 
 def test_chunker_flags_distractor_after_marker(provisions):
@@ -59,20 +75,41 @@ def test_retriever_filters_out_of_effect_status(provisions):
     idx = FaissFlatIndex(vecs.shape[1])
     idx.add(np.asarray(vecs), [p.provision_id for p in provisions])
 
-    target = next(p for p in provisions if p.article_no == "22")
-    target.status = "het_hieu_luc"
+    for p in provisions:
+        if p.article_no == "22":
+            p.status = "het_hieu_luc"
 
     hits = retrieve(
         "chương trình máy tính", provisions, embedder, idx, top_k=len(provisions)
     )
     assert all(h.provision.article_no != "22" for h in hits)
 
-    target.status = "hieu_luc"
+    for p in provisions:
+        if p.article_no == "22":
+            p.status = "hieu_luc"
 
 
 def test_refusal_gate_refuses_when_no_hits():
     decision = decide("query bất kỳ", [])
     assert decision.should_refuse is True
+
+
+def test_refusal_gate_out_of_scope_keyword():
+    decision = decide("Xử phạt vi phạm giao thông xe máy vượt đèn đỏ như thế nào?", [])
+    assert decision.should_refuse is True
+    assert "ngoài phạm vi" in decision.reason
+
+
+def test_refusal_gate_distractor_ratio(provisions):
+    from retrieval.retriever import RetrievalHit
+
+    # Tạo list hits với 80% distractor (4 distractor, 1 in-scope)
+    distractors = [p for p in provisions if p.is_distractor][:4]
+    in_scope = [p for p in provisions if not p.is_distractor][:1]
+    hits = [RetrievalHit(provision=p, score=0.8) for p in distractors + in_scope]
+    decision = decide("Quyền tác giả", hits)
+    assert decision.should_refuse is True
+    assert "dữ liệu nhiễu" in decision.reason
 
 
 def test_citations_exclude_distractor(provisions):
