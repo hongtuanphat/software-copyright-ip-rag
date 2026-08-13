@@ -136,5 +136,6 @@ def test_confusion_matrix_and_recall():
     assert cm.true_accept == 1
     assert 0.0 <= cm.trr <= 1.0
 
-    assert recall_at_k(["a", "b"], ["x", "a"], k=2) == 1.0
+    assert recall_at_k(["a", "b"], ["x", "a"], k=2) == 0.5
     assert recall_at_k(["a"], ["x", "y"], k=2) == 0.0
+    assert recall_at_k(["a", "b", "c"], ["x", "b", "a", "y"], k=2) == 1 / 3
