@@ -55,5 +55,12 @@ def recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
     """Tính chỉ số Recall@k cho một câu hỏi."""
     if not gold_ids:
         return float("nan")
+    if k <= 0:
+        return 0.0
+
+    gold_set = set(gold_ids)
     top_k_ids = set(retrieved_ids[:k])
-    return 1.0 if any(g in top_k_ids for g in gold_ids) else 0.0
+    if not gold_set:
+        return float("nan")
+
+    return len(gold_set & top_k_ids) / len(gold_set)
