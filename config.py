@@ -20,11 +20,22 @@ GEMINI_MODEL_NAME = "gemini-2.0-flash"
 
 # Chủ đề & Văn bản áp dụng
 IN_SCOPE_TOPICS = {"quyen_tac_gia_ctmt"}
-DISTRACTOR_TOPICS = {"sang_che", "kieu_dang_cong_nghiep", "nhan_hieu"}
+DISTRACTOR_TOPICS = {
+    "sang_che",
+    "kieu_dang_cong_nghiep",
+    "nhan_hieu",
+    "quyen_lien_quan",    # Quyền liên quan (người biểu diễn, bản ghi âm, chương trình phát sóng)
+    "bi_mat_kinh_doanh", # Bí mật kinh doanh
+    "distractor_khac",
+}
 LAW_CODE = "67/VBHN-VPQH"
 
 # Cấu hình Retrieval
 TOP_K = 5
+
+# Cấu hình Refusal Gate
+MIN_SCORE_TIN_CAY = 0.35      # Ngưỡng điểm tương đồng tối thiểu để tin tưởng kết quả
+MAX_DISTRACTOR_RATIO = 0.6    # Tỷ lệ distractor tối đa trong top-k 
 
 # Cấu hình Monitoring & Giám sát hiệu lực
 VBPL_BASE_URL = "https://congbao.chinhphu.vn"

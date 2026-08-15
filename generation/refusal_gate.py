@@ -9,16 +9,35 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from retrieval.retriever import RetrievalHit
+import config
 
-MIN_SCORE_TIN_CAY = 0.35
-MAX_DISTRACTOR_RATIO = 0.6
+MIN_SCORE_TIN_CAY = config.MIN_SCORE_TIN_CAY
+MAX_DISTRACTOR_RATIO = config.MAX_DISTRACTOR_RATIO
 
+# Từ khóa nhận diện cứng câu hỏi thuộc domain ngoài phạm vi Luật SHTT
 OUT_OF_SCOPE_KEYWORDS = [
+    # Domain giao thông
     "xe máy",
     "vượt đèn đỏ",
+    "giao thông đường bộ",
+    "bằng lái",
+    # Domain thuế
     "thuế giá trị gia tăng",
+    "thuế thu nhập doanh nghiệp",
+    "thuế thu nhập cá nhân",
+    "mã số thuế",
+    # Domain lao động / bảo hiểm
     "luật lao động",
     "bảo hiểm xã hội",
+    "hợp đồng lao động",
+    # Domain hôn nhân / dân sự
+    "luật hôn nhân",
+    "ly hôn",
+    "thừa kế",
+    # Domain hình sự / hành chính (ngoài SHTT)
+    "bộ luật hình sự",
+    "xử phạt vi phạm hành chính",
+    "nghị định xử phạt",
 ]
 
 

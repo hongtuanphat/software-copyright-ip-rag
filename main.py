@@ -78,14 +78,28 @@ def build_corpus() -> list:
 
 
 def index_corpus(provisions: list):
-    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu."""
+    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu, điền vector_id & embedding_model, và đồng bộ chunks.jsonl."""
+    import json
+
     embedder = get_embedder()
     texts = [p.text for p in provisions]
     vectors = embedder.encode(texts)
     dim = vectors.shape[1]
 
+    # Điền vector_id và embedding_model cho từng Provision
+    model_name = getattr(embedder, "model_name", config.EMBEDDING_MODEL_NAME)
+    for idx, p in enumerate(provisions):
+        p.vector_id = idx
+        p.embedding_model = model_name
+
+    # Cập nhật thông tin vector vào file chunks.jsonl
+    with config.CHUNKS_PATH.open("w", encoding="utf-8") as f:
+        for p in provisions:
+            f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
+
     faiss_index = FaissFlatIndex(dim)
     faiss_index.add(np.asarray(vectors), [p.provision_id for p in provisions])
+    faiss_index.save(config.FAISS_INDEX_PATH)
 
     bm25 = Bm25Index(texts, [p.provision_id for p in provisions])
     return embedder, faiss_index, bm25
@@ -124,6 +138,8 @@ def answer_question(item: dict, provisions, embedder, faiss_index) -> None:
 
 
 def main() -> None:
+    from retrieval.retriever import evaluate_retriever_recall
+
     print("--- [1/3] Xây dựng corpus từ VBHN 67/VBHN-VPQH ---")
     provisions = build_corpus()
     n_in_scope = sum(1 for p in provisions if not p.is_distractor)
@@ -133,7 +149,28 @@ def main() -> None:
     print("--- [2/3] Khởi tạo Embedder & Cấu trúc chỉ mục ---")
     embedder, faiss_index, bm25 = index_corpus(provisions)
     print(f"Mô hình Embedding: {getattr(embedder, 'model_name', 'unknown')}")
-    print(f"Chỉ mục FAISS: {len(faiss_index)} vectors.\n")
+    print(f"Chỉ mục FAISS: {len(faiss_index)} vectors (đã lưu tại {config.FAISS_INDEX_PATH}).")
+    print(f"Đã cập nhật vector_id và embedding_model vào {config.CHUNKS_PATH}.\n")
+
+    # Đánh giá sơ bộ Recall@k
+    sample_eval = [
+        {
+            "question": "Quyền tác giả đối với chương trình máy tính bao gồm những quyền nhân thân và quyền tài sản nào?",
+            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+        },
+        {
+            "question": "Theo Điều 22 Luật Sở hữu trí tuệ, việc tạo bản sao dự phòng chương trình máy tính được quy định như thế nào?",
+            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+        },
+    ]
+    recalls = evaluate_retriever_recall(
+        sample_eval, provisions, embedder, faiss_index,
+        k=config.TOP_K,
+        bm25_index=bm25,
+        mode="both",
+    )
+    print(f"-> Recall@{config.TOP_K} (FAISS Dense):  {recalls['faiss'] * 100:.1f}%")
+    print(f"-> Recall@{config.TOP_K} (BM25 Sparse):  {recalls['bm25'] * 100:.1f}%  ← baseline\n")
 
     print("--- [3/3] Chạy thử nghiệm các nhóm câu hỏi mẫu ---")
     for item in SAMPLE_QUESTIONS:

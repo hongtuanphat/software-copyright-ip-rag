@@ -16,6 +16,8 @@ import config
 
 
 class Embedder(Protocol):
+    model_name: str
+
     def encode(self, texts: list[str]) -> np.ndarray: ...
 
 
@@ -29,7 +31,8 @@ class SentenceTransformerEmbedder:
         self._model = SentenceTransformer(model_name)
 
     def encode(self, texts: list[str]) -> np.ndarray:
-        return np.asarray(self._model.encode(texts, normalize_embeddings=True))
+        vecs = self._model.encode(texts, normalize_embeddings=True)
+        return np.asarray(vecs, dtype=np.float32)
 
 
 class HashingFallbackEmbedder:

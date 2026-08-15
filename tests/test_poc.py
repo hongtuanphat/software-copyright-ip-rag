@@ -5,6 +5,8 @@ Kiểm thử tự động cho các thành phần cốt lõi của pipeline RAG:
 chunking (cấp Điều/Khoản), metadata, retrieval status filter, refusal gate, citation và metrics.
 Chạy bộ test: pytest tests/ -v
 """
+import copy
+import json
 import numpy as np
 import pytest
 
@@ -13,7 +15,7 @@ from ingestion.chunker import parse_law_text, Provision
 from ingestion.metadata import attach_effective_metadata, load_law_meta
 from retrieval.embedder import HashingFallbackEmbedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.retriever import retrieve
+from retrieval.retriever import retrieve, retrieve_bm25
 from generation.refusal_gate import decide
 from generation.citation import build_citations
 from evaluation.metrics import build_confusion_matrix, recall_at_k
@@ -69,24 +71,141 @@ def test_effective_metadata_attached(provisions):
 
 
 def test_retriever_filters_out_of_effect_status(provisions):
+    """Xác nhận retriever loại bỏ chunk có status != 'hieu_luc'.
+
+    Dùng bản sao cục bộ (deep copy) của provisions để tránh
+    nhiễm dữ liệu sang các test khác trong scope='module' nếu assert thất bại.
+    """
+    # Deep copy để không mutate fixture dùng chung
+    local_provisions = copy.deepcopy(provisions)
+
     embedder = HashingFallbackEmbedder()
-    texts = [p.text for p in provisions]
+    texts = [p.text for p in local_provisions]
     vecs = embedder.encode(texts)
     idx = FaissFlatIndex(vecs.shape[1])
-    idx.add(np.asarray(vecs), [p.provision_id for p in provisions])
+    idx.add(np.asarray(vecs), [p.provision_id for p in local_provisions])
 
-    for p in provisions:
+    # Đặt Điều 22 thành het_hieu_luc trên bản sao cục bộ
+    for p in local_provisions:
         if p.article_no == "22":
             p.status = "het_hieu_luc"
 
     hits = retrieve(
-        "chương trình máy tính", provisions, embedder, idx, top_k=len(provisions)
+        "chương trình máy tính", local_provisions, embedder, idx, top_k=len(local_provisions)
     )
     assert all(h.provision.article_no != "22" for h in hits)
+    # Fixture gốc 'provisions' không bị thay đổi
+    original_art22 = [p for p in provisions if p.article_no == "22"]
+    assert all(p.status == "hieu_luc" for p in original_art22)
 
-    for p in provisions:
+
+def test_retrieve_bm25_filters_out_of_effect_status(provisions):
+    """Xác nhận retrieve_bm25() cũng loại bỏ chunk hết hiệu lực giống retrieve()."""
+    from retrieval.bm25_index import Bm25Index
+
+    local_provisions = copy.deepcopy(provisions)
+    texts = [p.text for p in local_provisions]
+    p_ids = [p.provision_id for p in local_provisions]
+    bm25 = Bm25Index(texts, p_ids)
+
+    for p in local_provisions:
         if p.article_no == "22":
-            p.status = "hieu_luc"
+            p.status = "het_hieu_luc"
+
+    hits = retrieve_bm25("chương trình máy tính bản sao dự phòng", local_provisions, bm25, top_k=len(local_provisions))
+    assert all(h.provision.article_no != "22" for h in hits)
+
+
+def test_embedder_encodes_texts():
+    from retrieval.embedder import get_embedder
+
+    embedder = get_embedder()
+    texts = ["Quyền tác giả đối với chương trình máy tính", "Bản sao dự phòng phần mềm"]
+    vecs = embedder.encode(texts)
+    assert isinstance(vecs, np.ndarray)
+    assert vecs.dtype == np.float32
+    assert vecs.shape[0] == 2
+    assert vecs.shape[1] in (384, 768)
+    norms = np.linalg.norm(vecs, axis=1)
+    np.testing.assert_allclose(norms, 1.0, rtol=1e-3)
+
+
+def test_faiss_index_save_and_load(tmp_path):
+    dim = 64
+    idx_path = tmp_path / "test_faiss.index"
+
+    idx_original = FaissFlatIndex(dim=dim)
+    dummy_vecs = np.random.randn(5, dim).astype(np.float32)
+    dummy_vecs /= np.linalg.norm(dummy_vecs, axis=1, keepdims=True)
+    dummy_ids = [f"test_id_{i}" for i in range(5)]
+
+    idx_original.add(dummy_vecs, dummy_ids)
+    assert len(idx_original) == 5
+
+    idx_original.save(idx_path)
+    assert idx_path.exists()
+    assert (tmp_path / "test_faiss.index.ids.json").exists()
+
+    idx_loaded = FaissFlatIndex.load(idx_path)
+    assert len(idx_loaded) == 5
+    assert idx_loaded.dim == dim
+
+    hits = idx_loaded.search(dummy_vecs[0], top_k=1)
+    assert len(hits) == 1
+    assert hits[0][0] == "test_id_0"
+
+
+def test_vector_id_and_embedding_model_populated(provisions):
+    from main import index_corpus
+
+    embedder, faiss_idx, bm25 = index_corpus(provisions)
+
+    for i, p in enumerate(provisions):
+        assert p.vector_id == i
+        assert p.embedding_model is not None
+
+    assert config.CHUNKS_PATH.exists()
+    lines = config.CHUNKS_PATH.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == len(provisions)
+
+    for i, line in enumerate(lines):
+        data = json.loads(line)
+        assert data["vector_id"] == i
+        assert data["embedding_model"] is not None
+
+
+def test_bm25_index_search(provisions):
+    from retrieval.bm25_index import Bm25Index
+
+    texts = [p.text for p in provisions]
+    p_ids = [p.provision_id for p in provisions]
+    bm25 = Bm25Index(texts, p_ids)
+
+    assert len(bm25) == len(provisions)
+    results = bm25.search("bản sao dự phòng", top_k=3)
+    assert len(results) > 0
+    top_pid = results[0][0]
+    assert "Art22" in top_pid
+
+
+def test_evaluate_retriever_recall(provisions):
+    from retrieval.retriever import evaluate_retriever_recall
+    from main import index_corpus
+
+    embedder, faiss_idx, _ = index_corpus(provisions)
+    eval_set = [
+        {
+            "question": "Quyền tác giả đối với chương trình máy tính",
+            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+        },
+        {
+            "question": "tạo bản sao dự phòng chương trình máy tính",
+            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+        },
+    ]
+    recall = evaluate_retriever_recall(eval_set, provisions, embedder, faiss_idx, k=5)
+    assert 0.0 <= recall <= 1.0
+    assert recall > 0.0
 
 
 def test_refusal_gate_refuses_when_no_hits():
