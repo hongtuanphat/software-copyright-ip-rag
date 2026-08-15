@@ -159,13 +159,26 @@ def parse_law_text(
 
 
 def _guess_topic(title: str) -> str:
+    """Phân loại chủ đề distractor dựa trên tiêu đề điều luật.
+
+    Các nhóm distractor phấn đấu xuất hiện trong văn bản SHTT nhưng nàm ngoài phạm vi trả lời:
+    - Quyền liên quan (người biểu diễn, bản ghi âm, chương trình phát sóng)
+    - Sáng chế (thuật toán, giải pháp kỹ thuật)
+    - Kiểu dáng công nghiệp (giao diện UI/UX bên ngoài)
+    - Nhãn hiệu / Tên thương mại (logo, thương hiệu app)
+    - Bí mật kinh doanh
+    """
     title_low = title.lower()
     if "sáng chế" in title_low:
         return "sang_che"
     if "kiểu dáng" in title_low:
         return "kieu_dang_cong_nghiep"
-    if "nhãn hiệu" in title_low:
+    if "nhãn hiệu" in title_low or "tên thương mại" in title_low:
         return "nhan_hieu"
+    if "biểu diễn" in title_low or "bản ghi" in title_low or "quyền liên quan" in title_low:
+        return "quyen_lien_quan"
+    if "bí mật kinh doanh" in title_low:
+        return "bi_mat_kinh_doanh"
     return "distractor_khac"
 
 

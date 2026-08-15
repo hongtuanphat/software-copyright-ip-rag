@@ -5,6 +5,8 @@ Quản lý chỉ mục tìm kiếm vector Dense Retrieval sử dụng thư việ
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import numpy as np
 
 
@@ -34,6 +36,38 @@ class FaissFlatIndex:
                 continue
             results.append((self._ids[idx], float(score)))
         return results
+
+    def save(self, index_path: str | Path) -> None:
+        """Lưu chỉ mục FAISS và danh sách _ids tương ứng xuống đĩa."""
+        import faiss
+
+        idx_p = Path(index_path)
+        idx_p.parent.mkdir(parents=True, exist_ok=True)
+        faiss.write_index(self._index, str(idx_p))
+
+        ids_path = Path(str(idx_p) + ".ids.json")
+        ids_path.write_text(json.dumps(self._ids, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, index_path: str | Path) -> FaissFlatIndex:
+        """Nạp chỉ mục FAISS và danh sách _ids từ đĩa."""
+        import faiss
+
+        idx_p = Path(index_path)
+        if not idx_p.exists():
+            raise FileNotFoundError(f"Không tìm thấy chỉ mục FAISS tại {idx_p}")
+
+        index = faiss.read_index(str(idx_p))
+        ids_path = Path(str(idx_p) + ".ids.json")
+        if ids_path.exists():
+            ids = json.loads(ids_path.read_text(encoding="utf-8"))
+        else:
+            ids = []
+
+        instance = cls(dim=index.d)
+        instance._index = index
+        instance._ids = ids
+        return instance
 
     def __len__(self) -> int:
         return len(self._ids)
