@@ -11,6 +11,14 @@ không phải chỉ cần có ít nhất một gold hit là 1.0.
 
 from __future__ import annotations
 
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
 import argparse
 import json
 from pathlib import Path

@@ -1,49 +1,76 @@
-"""
-generation/llm.py
+"""generation/llm.py
 
-Giao tiếp với mô hình ngôn ngữ lớn (LLM) để sinh câu trả lời.
-Tự động fallback trích xuất nguyên văn nếu chưa cài đặt GOOGLE_API_KEY.
+Giao tiếp với mô hình Google Gemini qua SDK google-genai mới nhất.
+Nếu chưa có API key hoặc mất mạng thì tự động chuyển sang trích nguyên văn điều luật điểm cao nhất.
 """
 from __future__ import annotations
 
 import os
+from typing import Optional
+from google import genai
+from google.genai import types
+
 import config
 from retrieval.retriever import RetrievalHit
 
 
+def get_api_key() -> Optional[str]:
+    """Lấy API key từ biến môi trường hệ thống hoặc file .env."""
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+
 def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> str:
-    """Sinh câu trả lời sử dụng Gemini API hoặc cơ chế fallback.
-
-    Args:
-        query: Câu hỏi của người dùng.
-        prompt: Chuỗi prompt hoàn chỉnh bao gồm context.
-        hits: Danh sách trích dẫn liên quan.
-
-    Returns:
-        str: Nội dung câu trả lời.
-    """
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    """Gọi Gemini sinh câu trả lời hoặc trích xuất điều luật nếu không có key."""
+    api_key = get_api_key()
     if api_key:
         try:
             return _call_gemini(prompt, api_key)
         except Exception as e:  # noqa: BLE001
-            print(f"[LLM] Gọi Gemini API không thành công ({e}); chuyển sang fallback.")
+            print(f"[LLM] Không gọi được Gemini API ({e}), chuyển sang trích dẫn nguyên văn.")
     else:
-        print("[LLM] Chưa có GOOGLE_API_KEY — sử dụng cơ chế trích xuất fallback.")
+        print("[LLM] Chưa có GEMINI_API_KEY / GOOGLE_API_KEY — tạm thời dùng trích xuất nguyên văn.")
 
     return _extractive_fallback(query, hits)
 
 
-def _call_gemini(prompt: str, api_key: str) -> str:
-    import google.generativeai as genai
+def generate_no_rag(query: str) -> str:
+    """Hỏi trực tiếp Gemini không kèm tài liệu tham khảo để làm mốc đối chứng (No-RAG)."""
+    api_key = get_api_key()
+    if not api_key:
+        return "[Baseline No-RAG] Cần có GEMINI_API_KEY để chạy thử nghiệm này."
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(config.GEMINI_MODEL_NAME)
-    response = model.generate_content(prompt)
-    return response.text
+    raw_prompt = (
+        "Bạn là một trợ lý ảo. Hãy trả lời câu hỏi sau về pháp luật Việt Nam "
+        "dựa trên kiến thức sẵn có của bạn mà không có tài liệu tham khảo:\n\n"
+        f"CÂU HỎI: {query}\n\n"
+        "Hãy trả lời chi tiết và nêu rõ các Điều/Khoản luật liên quan (nếu biết)."
+    )
+    return _call_gemini(raw_prompt, api_key)
+
+
+def _call_gemini(prompt: str, api_key: str) -> str:
+    """Gửi prompt sang Gemini và lấy văn bản kết quả."""
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model=config.GEMINI_MODEL_NAME,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=config.GEMINI_TEMPERATURE,
+            max_output_tokens=config.GEMINI_MAX_TOKENS,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+        ),
+    )
+    if response and response.text:
+        return response.text.strip()
+    if response and response.candidates:
+        parts = response.candidates[0].content.parts
+        if parts and hasattr(parts[0], "text"):
+            return parts[0].text.strip()
+    return ""
 
 
 def _extractive_fallback(query: str, hits: list[RetrievalHit]) -> str:
+    """Khi không gọi được LLM, lấy nguyên văn điều luật điểm cao nhất để trả lời tạm."""
     in_scope = [h for h in hits if not h.provision.is_distractor]
     if not in_scope:
         return "[Chế độ Fallback] Không tìm thấy căn cứ pháp lý phù hợp trong dữ liệu."
