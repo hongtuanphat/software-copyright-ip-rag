@@ -16,7 +16,7 @@ FAISS_INDEX_PATH = DATA_PROCESSED_DIR / "faiss.index"
 # Mô hình & Dịch vụ AI
 EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
 LLM_PROVIDER = "gemini"
-GEMINI_MODEL_NAME = "gemini-2.0-flash"
+GEMINI_MODEL_NAME = "gemini-3.6-flash"
 
 # Chủ đề & Văn bản áp dụng
 IN_SCOPE_TOPICS = {"quyen_tac_gia_ctmt"}
