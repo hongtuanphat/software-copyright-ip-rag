@@ -1,7 +1,7 @@
-"""
-retrieval/bm25_index.py
+"""retrieval/bm25_index.py
 
 Tìm kiếm thông tin theo từ khóa Sparse Retrieval sử dụng thuật toán BM25Okapi.
+Hỗ trợ tách từ đơn (unigram) kết hợp từ ghép đôi (bigram) giúp cải thiện độ nhạy với cụm từ tiếng Việt.
 """
 from __future__ import annotations
 
@@ -10,7 +10,12 @@ from rank_bm25 import BM25Okapi
 
 
 def _tokenize(text: str) -> list[str]:
-    return re.findall(r"\w+", text.lower())
+    """Tách từ đơn và từ ghép đôi liền kề (unigram + bigram) để nắm bắt cụm từ pháp lý tiếng Việt."""
+    words = re.findall(r"\w+", text.lower())
+    if not words:
+        return []
+    bigrams = [f"{words[i]}_{words[i+1]}" for i in range(len(words) - 1)]
+    return words + bigrams
 
 
 class Bm25Index:

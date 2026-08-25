@@ -1,68 +1,76 @@
 """
-main.py — Điểm vào CLI kiểm thử hệ thống PoC RAG.
+main.py — Điểm vào CLI kiểm thử hệ thống RAG (Tuần 5: Hybrid Search).
 
 Quy trình xử lý:
-    raw text -> chunker -> metadata -> embedder -> FAISS + BM25 -> retriever
+    raw text -> chunker -> metadata -> embedder -> FAISS + BM25 -> retrieve_hybrid (RRF)
     -> refusal_gate -> prompt_builder -> llm -> citation
 """
 from __future__ import annotations
 
+import sys
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
+import json
 import numpy as np
+
 import config
 from ingestion.chunker import parse_law_text
 from ingestion.metadata import attach_effective_metadata, load_law_meta
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
 from retrieval.bm25_index import Bm25Index
-from retrieval.retriever import retrieve
+from retrieval.retriever import retrieve_hybrid
 from generation.refusal_gate import decide
 from generation.prompt_builder import build_prompt
 from generation.llm import generate
 from generation.citation import build_citations
+from monitoring.effective_checker import get_active_alerts
 
 
 SOURCE_URL = (
     "https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm"
 )
 
+# 5 Câu hỏi đại diện cho 5 Nhóm kiểm thử
 SAMPLE_QUESTIONS = [
-    # Nhóm 1: Trực tiếp trong phạm vi
+    # Nhóm 1: Trong phạm vi, hỏi trực tiếp
     {
         "group": 1,
         "group_name": "Nhóm 1: Trong phạm vi, trực tiếp",
-        "question": "Quyền tác giả đối với chương trình máy tính bao gồm những quyền nhân thân và quyền tài sản nào?"
+        "question": "Quyền tác giả đối với chương trình máy tính bao gồm những quyền nhân thân và quyền tài sản nào?",
     },
-    # Nhóm 2: Tình huống thực tế
+    # Nhóm 2: Tình huống thực tế (Hợp đồng gia công, bản sao lưu)
     {
         "group": 2,
-        "group_name": "Nhóm 2: Trong phạm vi, tình huống thực tế",
-        "question": "Công ty A thuê lập trình viên B viết phần mềm quản lý bán hàng nhưng hợp đồng không có thỏa thuận về quyền sở hữu. Vậy ai là chủ sở hữu quyền tác giả đối với phần mềm này?"
+        "group_name": "Nhóm 2: Tình huống thực tế (thuê ngoài phần mềm)",
+        "question": "Công ty A thuê công ty B phát triển phần mềm kế toán theo hợp đồng dịch vụ mà không có điều khoản chuyển nhượng quyền tác giả. Công ty A có quyền sao chép dự phòng và sửa đổi phần mềm không?",
     },
-    # Nhóm 3: Tra cứu điều khoản cụ thể
+    # Nhóm 3: Tra cứu điều khoản
     {
         "group": 3,
-        "group_name": "Nhóm 3: Tra cứu điều khoản cụ thể",
-        "question": "Theo Điều 22 Luật Sở hữu trí tuệ, việc tạo bản sao dự phòng chương trình máy tính được quy định như thế nào?"
+        "group_name": "Nhóm 3: Tra cứu điều khoản",
+        "question": "Điều 22 Luật Sở hữu trí tuệ quy định về quyền tác giả đối với chương trình máy tính như thế nào?",
     },
-    # Nhóm 4: Ngoài phạm vi gần chủ đề (Distractor)
+    # Nhóm 4: Gần chủ đề nhưng ngoài phạm vi (Soft refusal)
     {
         "group": 4,
-        "group_name": "Nhóm 4: Ngoài phạm vi nhưng gần chủ đề (Distractor)",
-        "question": "Chương trình máy tính có được bảo hộ dưới danh nghĩa sáng chế theo Điều 59 Luật Sở hữu trí tuệ không?"
+        "group_name": "Nhóm 4: Ngoài phạm vi nhưng gần chủ đề (Soft refusal)",
+        "question": "Chương trình máy tính có được bảo hộ dưới danh nghĩa sáng chế theo Điều 59 Luật Sở hữu trí tuệ không?",
     },
     # Nhóm 5: Hoàn toàn ngoài phạm vi (Buộc từ chối)
     {
         "group": 5,
         "group_name": "Nhóm 5: Buộc từ chối vì ngoài phạm vi / thiếu căn cứ",
-        "question": "Mức xử phạt vi phạm hành chính đối với hành vi điều khiển xe máy vượt đèn đỏ theo Luật Giao thông đường bộ là bao nhiêu?"
+        "question": "Mức xử phạt vi phạm hành chính đối với hành vi điều khiển xe máy vượt đèn đỏ theo Luật Giao thông đường bộ là bao nhiêu?",
     },
 ]
 
 
 def build_corpus() -> list:
     """Nạp dữ liệu thô từ VBHN 67/VBHN-VPQH, tách chunks và gán metadata."""
-    import json
-
     raw_path = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
     text = raw_path.read_text(encoding="utf-8")
     provisions = parse_law_text(text, law_code=config.LAW_CODE, source_url=SOURCE_URL)
@@ -78,9 +86,7 @@ def build_corpus() -> list:
 
 
 def index_corpus(provisions: list):
-    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu, điền vector_id & embedding_model, và đồng bộ chunks.jsonl."""
-    import json
-
+    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu."""
     embedder = get_embedder()
     texts = [p.text for p in provisions]
     vectors = embedder.encode(texts)
@@ -105,19 +111,27 @@ def index_corpus(provisions: list):
     return embedder, faiss_index, bm25
 
 
-def answer_question(item: dict, provisions, embedder, faiss_index) -> None:
-    """Thực thi pipeline tìm kiếm, đánh giá từ chối và sinh câu trả lời cho một câu hỏi."""
+def answer_question(item: dict, provisions, embedder, faiss_index, bm25_index) -> None:
+    """Thực thi pipeline Hybrid Search, đánh giá từ chối và sinh câu trả lời."""
     query = item["question"]
     g_name = item["group_name"]
     print("=" * 78)
     print(f"[{g_name}]")
     print(f"CÂU HỎI: {query}")
 
-    hits = retrieve(query, provisions, embedder, faiss_index, top_k=config.TOP_K)
-    print(f"-> Retrieval trả về {len(hits)} kết quả còn hiệu lực (top_k={config.TOP_K}):")
+    hits = retrieve_hybrid(
+        query=query,
+        provisions=provisions,
+        embedder=embedder,
+        faiss_index=faiss_index,
+        bm25_index=bm25_index,
+        top_k=config.TOP_K,
+    )
+    print(f"-> Hybrid Retrieval trả về {len(hits)} kết quả còn hiệu lực (top_k={config.TOP_K}):")
     for h in hits:
         flag = " [DISTRACTOR]" if h.provision.is_distractor else ""
-        print(f"   score={h.score:.4f}  Điều {h.provision.article_no}{flag}  {h.provision.title}")
+        clause_tag = f" Khoản {h.provision.clause_no}" if h.provision.clause_no else ""
+        print(f"   score={h.score:.4f}  Điều {h.provision.article_no}{clause_tag}{flag}  {h.provision.title}")
 
     decision = decide(query, hits)
     print(f"-> Refusal gate: should_refuse={decision.should_refuse} | lý do: {decision.reason}")
@@ -128,53 +142,39 @@ def answer_question(item: dict, provisions, embedder, faiss_index) -> None:
 
     prompt = build_prompt(query, hits)
     answer = generate(query, prompt, hits)
-    citations = build_citations(hits)
+    print(f">> CÂU TRẢ LỜI:\n{answer}")
 
-    print(">> CÂU TRẢ LỜI:")
-    print(answer)
-    print(">> TRÍCH DẪN PHÁP LÝ (Metadata):")
+    citations = build_citations(hits)
+    print("-> Trích dẫn căn cứ pháp lý:")
     for c in citations:
-        print(f"   - Điều {c['article_no']} ({c['law_code']}), status={c['status']}")
+        clause_str = f" (Khoản {c['clause_no']})" if c.get("clause_no") else ""
+        print(f"   * {c['law_code']} | Điều {c['article_no']}{clause_str}: {c['title']}")
 
 
 def main() -> None:
-    from retrieval.retriever import evaluate_retriever_recall
-
     print("--- [1/3] Xây dựng corpus từ VBHN 67/VBHN-VPQH ---")
     provisions = build_corpus()
     n_in_scope = sum(1 for p in provisions if not p.is_distractor)
     n_distractor = sum(1 for p in provisions if p.is_distractor)
     print(f"Tổng số chunks: {len(provisions)} ({n_in_scope} trong phạm vi, {n_distractor} distractor).\n")
 
-    print("--- [2/3] Khởi tạo Embedder & Cấu trúc chỉ mục ---")
-    embedder, faiss_index, bm25 = index_corpus(provisions)
-    print(f"Mô hình Embedding: {getattr(embedder, 'model_name', 'unknown')}")
-    print(f"Chỉ mục FAISS: {len(faiss_index)} vectors (đã lưu tại {config.FAISS_INDEX_PATH}).")
-    print(f"Đã cập nhật vector_id và embedding_model vào {config.CHUNKS_PATH}.\n")
+    print("--- [2/3] Khởi tạo Embedder & Cấu trúc chỉ mục (FAISS Dense & BM25 Sparse) ---")
+    embedder, faiss_index, bm25_index = index_corpus(provisions)
+    print(f"Mô hình Embedding: {getattr(embedder, 'model_name', config.EMBEDDING_MODEL_NAME)}")
+    print(f"Chỉ mục FAISS Dense: {len(faiss_index)} vectors (đã lưu tại {config.FAISS_INDEX_PATH}).")
+    print(f"Chỉ mục BM25 Sparse: {len(bm25_index)} documents.")
+    print(f"Đã cập nhật vector_id và embedding_model vào {config.CHUNKS_PATH}.")
 
-    # Đánh giá sơ bộ Recall@k
-    sample_eval = [
-        {
-            "question": "Quyền tác giả đối với chương trình máy tính bao gồm những quyền nhân thân và quyền tài sản nào?",
-            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
-        },
-        {
-            "question": "Theo Điều 22 Luật Sở hữu trí tuệ, việc tạo bản sao dự phòng chương trình máy tính được quy định như thế nào?",
-            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
-        },
-    ]
-    recalls = evaluate_retriever_recall(
-        sample_eval, provisions, embedder, faiss_index,
-        k=config.TOP_K,
-        bm25_index=bm25,
-        mode="both",
-    )
-    print(f"-> Recall@{config.TOP_K} (FAISS Dense):  {recalls['faiss'] * 100:.1f}%")
-    print(f"-> Recall@{config.TOP_K} (BM25 Sparse):  {recalls['bm25'] * 100:.1f}%  ← baseline\n")
+    # Kiểm tra trạng thái giám sát hiệu lực văn bản
+    active_alerts = get_active_alerts()
+    if active_alerts:
+        print(f"Cảnh báo hiệu lực: Có {len(active_alerts)} cảnh báo đang hoạt động.\n")
+    else:
+        print("Trạng thái hiệu lực văn bản: Đang có hiệu lực bình thường.\n")
 
-    print("--- [3/3] Chạy thử nghiệm các nhóm câu hỏi mẫu ---")
+    print("--- [3/3] Chạy thử nghiệm các nhóm câu hỏi mẫu (Hybrid Search RRF) ---")
     for item in SAMPLE_QUESTIONS:
-        answer_question(item, provisions, embedder, faiss_index)
+        answer_question(item, provisions, embedder, faiss_index, bm25_index)
     print("=" * 78)
 
 

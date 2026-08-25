@@ -1,235 +1,187 @@
-"""Đánh giá Dense Retriever bằng Recall@K trên tập dev set.
+"""evaluation/evaluate_recall.py
 
-Script này đọc file JSON dev_set.json, chạy từng câu hỏi qua pipeline Dense Retrieval
-hiện có trong repo, và tính các metric Recall@1, Recall@3, Recall@5, Recall@10.
+Script đánh giá định lượng độ chính xác của Tầng Truy hồi (Retrieval) trên tập dev_set.json:
+- Chạy từng câu hỏi kiểm thử qua các pipeline tìm kiếm và tính các chỉ số Recall@1, Recall@3, Recall@5, Recall@10.
+- So sánh đối chứng hiệu quả giữa 3 phương pháp:
+    1. Single Dense Retrieval (FAISS với mô hình vietnamese-bi-encoder)
+    2. Single Sparse Retrieval (BM25Okapi)
+    3. Hybrid Search (Kết hợp Dense + BM25 qua thuật toán Reciprocal Rank Fusion - RRF)
+- Đánh giá ở cả 2 cấp độ: Cấp Khoản (Exact Clause) và Cấp Điều (Hierarchical Article).
 
-Mỗi câu hỏi có thể có nhiều gold_ids; do đó, Recall@K được tính theo công thức:
-    |Gold ∩ TopK| / |Gold|
-
-không phải chỉ cần có ít nhất một gold hit là 1.0.
+Mỗi câu hỏi có thể có nhiều gold_ids; do đó, Recall@K được tính theo công thức giao tập hợp:
+    Recall@K = |Gold ∩ TopK| / |Gold|
+(tính đúng theo tỷ lệ các điều luật tìm được trên tổng số điều luật cần tìm, không phải chỉ có 1 hit là 1.0).
 """
-
 from __future__ import annotations
-
-import sys
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
 
 import argparse
 import json
+import os
+import re
+import sys
 from pathlib import Path
 from typing import Any
+
+# Đảm bảo in tiếng Việt chuẩn trên Windows terminal
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 import numpy as np
 
 import config
-from evaluation.metrics import recall_at_k
-from ingestion.chunker import parse_law_text
-from ingestion.metadata import attach_effective_metadata, load_law_meta
+from ingestion.chunker import Provision
+from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.retriever import retrieve
-
-SOURCE_URL = (
-    "https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm"
-)
-K_VALUES = [1, 3, 5, 10]
-DEFAULT_DEV_SET_PATH = Path("data/evaluation/dev_set.json")
-DEFAULT_RESULTS_PATH = Path("evaluation/recall_results.json")
+from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
 
 
-def load_dev_set(path: Path) -> list[dict[str, Any]]:
-    """Đọc dev_set.json và validate schema đầu vào."""
-    if not path.exists():
-        raise FileNotFoundError(f"Không tìm thấy file dev set: {path}")
+def load_dataset(dataset_path: Path) -> list[dict[str, Any]]:
+    """Đọc bộ câu hỏi kiểm thử từ file json hoặc jsonl."""
+    if not dataset_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy tập dữ liệu kiểm thử tại: {dataset_path}")
 
-    with path.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
+    with open(dataset_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    if not isinstance(data, list):
-        raise ValueError(f"Dev set phải là một list JSON, nhưng nhận được {type(data).__name__}.")
-
-    for idx, item in enumerate(data):
-        missing = [key for key in ("id", "group", "question", "gold_ids") if key not in item]
-        if missing:
-            raise ValueError(f"Record #{idx} thiếu các trường bắt buộc: {missing}")
-
-        if not isinstance(item["gold_ids"], list):
-            raise ValueError(f"Record '{item.get('id', idx)}' có gold_ids không phải list.")
-
-    return data
+    if isinstance(data, dict) and "questions" in data:
+        return data["questions"]
+    if isinstance(data, list):
+        return data
+    raise ValueError(f"Định dạng dữ liệu không hợp lệ tại {dataset_path}")
 
 
-def build_provisions() -> list:
-    """Build corpus từ văn bản pháp luật theo pipeline hiện có trong repo."""
-    raw_path = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
-    if not raw_path.exists():
-        raise FileNotFoundError(f"Không tìm thấy file văn bản raw: {raw_path}")
+def load_corpus(chunks_path: Path) -> list[Provision]:
+    """Đọc toàn bộ các đoạn luật (Provision) từ file chunks.jsonl."""
+    if not chunks_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy file chunks tại: {chunks_path}")
 
-    text = raw_path.read_text(encoding="utf-8")
-    provisions = parse_law_text(
-        text,
-        law_code=config.LAW_CODE,
-        source_url=SOURCE_URL,
-    )
-    law_meta = load_law_meta(raw_path)
-    provisions = attach_effective_metadata(provisions, law_meta)
+    provisions: list[Provision] = []
+    with open(chunks_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                provisions.append(Provision(**json.loads(line)))
     return provisions
 
 
-def build_dense_index(provisions: list) -> tuple[object, FaissFlatIndex]:
-    """Khởi tạo embedder và FAISS cho toàn bộ corpus."""
-    embedder = get_embedder()
-    texts = [p.text for p in provisions]
-    vectors = embedder.encode(texts)
-
-    faiss_index = FaissFlatIndex(vectors.shape[1])
-    faiss_index.add(np.asarray(vectors), [p.provision_id for p in provisions])
-    return embedder, faiss_index
+def _extract_article_no(provision_id: str) -> str:
+    """Bóc tách số hiệu Điều từ mã định danh provision_id."""
+    m = re.search(r"Art(\d+[a-z]?)", provision_id)
+    return m.group(1) if m else provision_id
 
 
-def evaluate_one_query(
-    item: dict[str, Any],
-    provisions: list,
-    embedder: object,
+def calculate_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
+    """Tính Recall@K ở cấp Khoản (Exact Clause Match)."""
+    if not gold_ids:
+        return 0.0
+    top_k_retrieved = set(retrieved_ids[:k])
+    matched = sum(1 for gid in gold_ids if gid in top_k_retrieved)
+    return matched / len(gold_ids)
+
+
+def calculate_hierarchical_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
+    """Tính Recall@K ở cấp Điều (Hierarchical Article Match)."""
+    if not gold_ids:
+        return 0.0
+    gold_articles = set(_extract_article_no(gid) for gid in gold_ids)
+    retrieved_articles = set(_extract_article_no(rid) for rid in retrieved_ids[:k])
+    matched = sum(1 for art in gold_articles if art in retrieved_articles)
+    return matched / len(gold_articles)
+
+
+def evaluate_system(
+    questions: list[dict[str, Any]],
+    provisions: list[Provision],
+    embedder: Any,
     faiss_index: FaissFlatIndex,
-    k_values: list[int] = K_VALUES,
+    bm25_index: Bm25Index,
+    k_values: list[int] = [1, 3, 5, 10],
 ) -> dict[str, Any]:
-    """Đánh giá một câu hỏi trong dev set bằng Dense Retriever.
-
-    Các câu hỏi nhóm 4/5 có thể không có gold_ids (distractor/no-answer). Chúng vẫn
-    được giữ lại trong dữ liệu đầu vào để audit, nhưng không được đếm vào trung bình
-    Recall@K vì không có mục tiêu đúng nào để hit.
-    """
-    question = str(item["question"]).strip()
-    gold_ids = [str(g).strip() for g in item.get("gold_ids", []) if str(g).strip()]
-
-    hits = retrieve(
-        query=question,
-        provisions=provisions,
-        embedder=embedder,
-        faiss_index=faiss_index,
-        top_k=max(k_values),
-    )
-
-    retrieved_ids = [hit.provision.provision_id for hit in hits]
-    result = {
-        "id": str(item["id"]),
-        "group": str(item.get("group", "")),
-        "question": question,
-        "gold_ids": gold_ids,
-        "retrieved_ids": retrieved_ids,
-        "is_valid_for_recall": bool(gold_ids),
+    """Chạy đo lường toàn diện trên 3 chế độ: Dense, BM25 và Hybrid."""
+    results_by_mode: dict[str, dict[str, list[float]]] = {
+        "Dense (FAISS)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
+        "Sparse (BM25)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
+        "Hybrid (FAISS+BM25+RRF)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
     }
 
-    for k in k_values:
-        result[f"recall_at_{k}"] = recall_at_k(gold_ids, retrieved_ids, k)
+    # Lọc các câu hỏi có nhãn ground truth (Nhóm 1, 2, 3, 4)
+    eval_questions = [q for q in questions if (q.get("gold_ids") or q.get("ground_truth_provisions"))]
 
-    return result
+    for q in eval_questions:
+        query_text = q.get("question", "")
+        gold_ids = q.get("gold_ids") or q.get("ground_truth_provisions") or []
 
+        # 1. Chạy Dense
+        dense_hits = retrieve(query_text, provisions, embedder, faiss_index, top_k=max(k_values))
+        dense_pids = [h.provision.provision_id for h in dense_hits]
 
-def _is_summary_group(item: dict[str, Any]) -> bool:
-    """Chỉ tính Recall cho các câu hỏi thuộc Nhóm 1–3.
+        # 2. Chạy BM25
+        bm25_hits = retrieve_bm25(query_text, provisions, bm25_index, top_k=max(k_values))
+        bm25_pids = [h.provision.provision_id for h in bm25_hits]
 
-    Nhóm 4 và 5 là tập nhiễu / phản biện không có gold_ids, nên không tính vào trung bình Recall@K.
-    """
-    group = str(item.get("group", "")).strip().lower()
-    return group in {"nhóm 1", "nhom 1", "nhóm 2", "nhom 2", "nhóm 3", "nhom 3"}
+        # 3. Chạy Hybrid
+        hybrid_hits = retrieve_hybrid(query_text, provisions, embedder, faiss_index, bm25_index, top_k=max(k_values))
+        hybrid_pids = [h.provision.provision_id for h in hybrid_hits]
 
+        for mode_name, pids in [
+            ("Dense (FAISS)", dense_pids),
+            ("Sparse (BM25)", bm25_pids),
+            ("Hybrid (FAISS+BM25+RRF)", hybrid_pids),
+        ]:
+            for k in k_values:
+                r_k = calculate_recall_at_k(gold_ids, pids, k)
+                art_r_k = calculate_hierarchical_recall_at_k(gold_ids, pids, k)
+                results_by_mode[mode_name][f"recall@{k}"].append(r_k)
+                results_by_mode[mode_name][f"article_recall@{k}"].append(art_r_k)
 
-def compute_summary(results: list[dict[str, Any]], k_values: list[int] = K_VALUES) -> dict[str, Any]:
-    """Tính mean Recall@K chỉ trên các query thuộc nhóm đánh giá chính (1–3)."""
-    summary: dict[str, Any] = {}
-    valid_queries = [
-        r for r in results if r.get("is_valid_for_recall") and _is_summary_group(r)
-    ]
-    excluded_queries = len(results) - len(valid_queries)
-
-    for k in k_values:
-        values = [r.get(f"recall_at_{k}", np.nan) for r in valid_queries]
-        summary[f"recall_at_{k}"] = float(np.nanmean(values)) if values else float("nan")
-
-    summary["num_queries"] = len(results)
-    summary["num_valid_queries"] = len(valid_queries)
-    summary["num_excluded_queries"] = excluded_queries
-    summary["num_no_gold_queries"] = sum(
-        1 for r in results if not r.get("is_valid_for_recall")
-    )
+    summary: dict[str, Any] = {"total_evaluated_questions": len(eval_questions), "modes": {}}
+    for mode_name, metrics in results_by_mode.items():
+        summary["modes"][mode_name] = {
+            metric_name: round(float(np.mean(vals)), 4) if vals else 0.0
+            for metric_name, vals in metrics.items()
+        }
     return summary
 
 
-def save_results(results: list[dict[str, Any]], summary: dict[str, Any], output_path: Path) -> None:
-    """Lưu JSON kết quả đánh giá: danh sách từng query + summary."""
-    payload = {
-        "results": results,
-        "summary": summary,
-    }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
+def print_summary_table(summary: dict[str, Any]) -> None:
+    """In bảng so sánh chỉ số trực quan ra màn hình."""
+    print("=" * 85)
+    print(f"BÁO CÁO ĐO LƯỜNG ĐỘ CHÍNH XÁC TRUY HỒI (RECALL) TRÊN {summary['total_evaluated_questions']} CÂU HỎI")
+    print("=" * 85)
+    print(f"{'Phương Pháp Truy Hồi':<26} | {'Recall@1':<10} | {'Recall@3':<10} | {'Recall@5':<10} | {'Recall@10':<10} | {'Article@5':<10}")
+    print("-" * 85)
 
-
-def print_summary(summary: dict[str, Any]) -> None:
-    """In ra thống kê Recall@K theo format yêu cầu."""
-    print("========================================")
-    print("Recall@K Evaluation")
-    print("========================================")
-    print(f"Dev set size: {summary['num_queries']}")
-    print(f"Included in summary (Nhóm 1-3): {summary['num_valid_queries']}")
-    print(f"Excluded from summary (Nhóm 4-5 + no-gold): {summary['num_excluded_queries']}")
-    print(f"No-gold queries: {summary['num_no_gold_queries']}")
-    for k in K_VALUES:
-        value = summary[f"recall_at_{k}"]
-        print(f"Recall@{k:>2}  : {value:.4f}")
-    print("========================================")
-
-
-def parse_args() -> argparse.Namespace:
-    """Phân tích tham số dòng lệnh nếu người dùng muốn override path mặc định."""
-    parser = argparse.ArgumentParser(
-        description="Đánh giá Dense Retriever trên dev set bằng Recall@K."
-    )
-    parser.add_argument(
-        "--dev-set",
-        type=Path,
-        default=DEFAULT_DEV_SET_PATH,
-        help="Đường dẫn tới dev_set.json (mặc định: data/evaluation/dev_set.json)",
-    )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=DEFAULT_RESULTS_PATH,
-        help="Đường dẫn file JSON lưu kết quả (mặc định: evaluation/recall_results.json)",
-    )
-    return parser.parse_args()
+    for mode_name, metrics in summary["modes"].items():
+        r1 = f"{metrics.get('recall@1', 0.0)*100:.2f}%"
+        r3 = f"{metrics.get('recall@3', 0.0)*100:.2f}%"
+        r5 = f"{metrics.get('recall@5', 0.0)*100:.2f}%"
+        r10 = f"{metrics.get('recall@10', 0.0)*100:.2f}%"
+        art5 = f"{metrics.get('article_recall@5', 0.0)*100:.2f}%"
+        print(f"{mode_name:<26} | {r1:<10} | {r3:<10} | {r5:<10} | {r10:<10} | {art5:<10}")
+    print("=" * 85)
 
 
 def main() -> None:
-    """Entry point chính."""
-    args = parse_args()
+    dataset_path = config.DATA_DIR / "evaluation" / "dev_set.json"
+    chunks_path = config.CHUNKS_PATH
+    faiss_index_path = config.FAISS_INDEX_PATH
 
-    dev_set_path = args.dev_set
-    output_path = args.output
+    print("Đang nạp dữ liệu và tài nguyên phục vụ đánh giá Recall...")
+    questions = load_dataset(dataset_path)
+    provisions = load_corpus(chunks_path)
 
-    dev_items = load_dev_set(dev_set_path)
-    provisions = build_provisions()
-    embedder, faiss_index = build_dense_index(provisions)
+    embedder = get_embedder()
+    faiss_index = FaissFlatIndex.load(faiss_index_path)
 
-    results: list[dict[str, Any]] = []
-    for item in dev_items:
-        record = evaluate_one_query(item, provisions, embedder, faiss_index, K_VALUES)
-        results.append(record)
+    # Khởi tạo chỉ mục BM25
+    bm25_index = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
 
-    summary = compute_summary(results, K_VALUES)
-    save_results(results, summary, output_path)
-    print_summary(summary)
-
-    print(f"Saved results to: {output_path}")
+    summary = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)
+    print_summary_table(summary)
 
 
 if __name__ == "__main__":

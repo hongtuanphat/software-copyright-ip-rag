@@ -17,8 +17,8 @@ BỘ 5 QUY TẮC BẮT BUỘC:
    - Khi trả lời, mở đầu tự nhiên bằng cách dẫn chiếu luật (ví dụ: 'Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH)...'). Tuyệt đối KHÔNG dùng các cụm từ máy móc như '[NGỮ CẢNH CĂN CỨ]' hay 'theo ngữ cảnh được cấp'.
    - Nếu trong các điều khoản cung cấp chưa có thông tin về câu hỏi, hãy trả lời tự nhiên: 'Hiện tại trong các điều khoản luật được tra cứu chưa có quy định về vấn đề này...'
 
-2. BÓC TÁCH CHI TIẾT ĐẾN CẤP ĐIỂM (POINT-LEVEL):
-   - Khi điều/khoản có các điểm a, b, c... hãy nêu rõ: 'Theo Điểm ... Khoản ... Điều ...'.
+2. CĂN CỨ THEO CẤP ĐIỀU VÀ KHOẢN (ARTICLE & CLAUSE LEVEL):
+   - Khi trích dẫn căn cứ pháp lý, hãy nêu rõ: 'Theo Khoản ... Điều ...' (hoặc 'Căn cứ theo Điều ...'). Trình bày trực tiếp, mạch lạc nội dung quy định của điều khoản đó mà không cần chia nhỏ xuống ký tự chữ cái của từng điểm.
 
 3. PHÂN TÍCH 2 TRƯỜNG HỢP (MẶC ĐỊNH VS CÓ THỎA THUẬN):
    - Đối với việc thuê làm phần mềm, giao việc, chuyển nhượng: Luôn nêu rõ cả 2 trường hợp (1) Mặc định theo luật khi không có thỏa thuận và (2) Khi các bên có thỏa thuận riêng bằng văn bản.
@@ -33,12 +33,11 @@ BỘ 5 QUY TẮC BẮT BUỘC:
 
 def build_prompt(query: str, hits: list[RetrievalHit]) -> str:
     """Tạo prompt hoàn chỉnh kèm ngữ cảnh các đoạn luật cho mô hình."""
-    # Bỏ qua các đoạn distractor, chỉ giữ lại các điều khoản thuộc phạm vi bản quyền phần mềm
     in_scope_hits = [h for h in hits if not h.provision.is_distractor]
     context_blocks = []
     for h in in_scope_hits:
         p = h.provision
-        block_text = f"[Điều {p.article_no} — {p.title}]\n{p.text}"
+        block_text = f"[Điều {p.article_no} - {p.title}]\n{p.text}"
         context_blocks.append(block_text)
     context = "\n\n".join(context_blocks) if context_blocks else "(không có văn bản phù hợp)"
 
