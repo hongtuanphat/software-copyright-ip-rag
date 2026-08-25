@@ -23,6 +23,10 @@ env/
 data/processed/*
 !data/processed/.gitkeep
 
+# Evaluation output results & temporary run artifacts
+evaluation/*_results.json
+evaluation/recall_results.json
+
 # IDEs & Editor settings
 .vscode/
 .idea/

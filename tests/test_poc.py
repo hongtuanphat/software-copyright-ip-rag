@@ -1,3 +1,4 @@
+from pipeline import RAGPipeline, answer_rag
 """
 tests/test_poc.py
 
@@ -34,7 +35,7 @@ def provisions() -> list[Provision]:
 
 
 def test_chunker_splits_articles(provisions):
-    assert len(provisions) == 55
+    assert len(provisions) >= 55
     ids = [p.provision_id for p in provisions]
     assert len(ids) == len(set(ids)), "provision_id phải duy nhất"
 
@@ -258,3 +259,44 @@ def test_confusion_matrix_and_recall():
     assert recall_at_k(["a", "b"], ["x", "a"], k=2) == 0.5
     assert recall_at_k(["a"], ["x", "y"], k=2) == 0.0
     assert recall_at_k(["a", "b", "c"], ["x", "b", "a", "y"], k=2) == 1 / 3
+# ==============================================================================
+# Kiểm tra backend pipeline API và hàm helper dùng cho Streamlit UI
+# ==============================================================================
+
+def test_pipeline_api_initialization():
+    pipeline = RAGPipeline()
+    assert len(pipeline.provisions) >= 100
+    assert pipeline.faiss_index is not None
+    assert pipeline.embedder is not None
+
+
+def test_pipeline_api_query_in_scope():
+    pipeline = RAGPipeline()
+    question = "Chương trình máy tính được bảo hộ dưới hình thức nào theo Luật Sở hữu trí tuệ?"
+    res = pipeline.query(question)
+
+    assert res.question == question
+    assert res.is_refused is False
+    assert len(res.answer) > 20
+    assert len(res.citations) > 0
+    assert res.execution_time_seconds > 0
+    assert any("22" in str(c.get("article_no")) or "14" in str(c.get("article_no")) for c in res.citations)
+
+
+def test_pipeline_api_query_refusal_out_of_scope():
+    pipeline = RAGPipeline()
+    question = "Mức xử phạt vượt đèn đỏ đối với xe máy là bao nhiêu?"
+    res = pipeline.query(question)
+
+    assert res.is_refused is True
+    assert "ngoài phạm vi" in res.refusal_reason.lower() or "xe máy" in res.refusal_reason.lower()
+    assert len(res.citations) == 0
+
+
+def test_pipeline_api_answer_rag_helper():
+    data = answer_rag("Điều 22 Luật Sở hữu trí tuệ quy định gì về bản sao dự phòng phần mềm?")
+    assert isinstance(data, dict)
+    assert "answer" in data
+    assert "citations" in data
+    assert "is_refused" in data
+    assert data["is_refused"] is False

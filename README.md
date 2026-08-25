@@ -14,6 +14,16 @@ pip install -r requirements.txt
 
 ---
 
+## Cấu Hình Biến Môi Trường (.env)
+
+Tạo file `.env` tại thư mục gốc và điền Gemini API key:
+
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+---
+
 ## Hướng Dẫn Vận Hành PoC
 
 ### 1. Chạy thử nghiệm CLI (5 Nhóm câu hỏi mẫu)
@@ -40,6 +50,7 @@ python -m monitoring.effective_checker
 project/
 ├── config.py                 # Cấu hình hằng số hệ thống
 ├── main.py                   # Điểm vào CLI thử nghiệm
+├── pipeline.py               # Backend Service API (RAGPipeline, answer_rag)
 ├── requirements.txt          # Thư viện phụ thuộc
 ├── data/
 │   ├── raw/                  # Văn bản thô (67-VBHN-VPQH.txt & metadata)
