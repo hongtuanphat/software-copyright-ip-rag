@@ -95,6 +95,7 @@ def parse_law_text(
             c_no, c_lines = clause_blocks[0]
             body_text = "\n".join(c_lines).strip()
             if body_text:
+                full_text = f"Điều {art_no}. {art_title}\n\n{body_text}".strip()
                 pid = f"{sanitized_code}_Art{art_no}"
                 provisions.append(
                     Provision(
@@ -103,18 +104,34 @@ def parse_law_text(
                         article_no=art_no,
                         clause_no=None,
                         title=art_title,
-                        text=body_text,
+                        text=full_text,
                         topic=topic,
                         is_distractor=is_dist,
                         source_url=source_url,
                     )
                 )
         else:
+            intro_text = ""
+            if clause_blocks and clause_blocks[0][0] is None:
+                intro_text = "\n".join(clause_blocks[0][1]).strip()
+
             for c_no, c_lines in clause_blocks:
+                if c_no is None:
+                    continue  
+                
                 body_text = "\n".join(c_lines).strip()
                 if not body_text:
                     continue
-                clause_suffix = f"_Kh{c_no}" if c_no else ""
+                
+                # Ghép ngữ cảnh
+                parts = [f"Điều {art_no}. {art_title}"]
+                if intro_text:
+                    parts.append(intro_text)
+                parts.append(body_text)
+                
+                full_text = "\n\n".join(parts)
+                
+                clause_suffix = f"_Kh{c_no}"
                 pid = f"{sanitized_code}_Art{art_no}{clause_suffix}"
                 provisions.append(
                     Provision(
@@ -123,7 +140,7 @@ def parse_law_text(
                         article_no=art_no,
                         clause_no=c_no,
                         title=art_title,
-                        text=body_text,
+                        text=full_text,
                         topic=topic,
                         is_distractor=is_dist,
                         source_url=source_url,
