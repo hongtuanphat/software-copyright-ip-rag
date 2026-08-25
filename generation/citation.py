@@ -31,6 +31,7 @@ def build_citations(hits: list[RetrievalHit]) -> list[dict]:
                 "law_code": p.law_code,
                 "status": p.status,
                 "source_url": p.source_url,
+                "text": p.text,
                 "score": round(h.score, 4),
             }
         )
