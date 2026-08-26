@@ -1,94 +1,103 @@
-"""
-generation/refusal_gate.py
+"""generation/refusal_gate.py
 
-Module đánh giá độ tin cậy và quyết định từ chối (Refusal Gate) cho câu hỏi đầu vào.
-Kế thừa cơ chế đa tín hiệu: điểm tương đồng vector, tỷ lệ dữ liệu nhiễu (distractor),
-và danh sách từ khóa ngoài phạm vi.
+Bộ lọc từ chối câu hỏi (Refusal Gate) kết hợp 3 bước:
+1. Lọc từ khóa các chủ đề không liên quan (giao thông, đất đai, hình sự, thuế, ly hôn...).
+2. Kiểm tra độ tin cậy của kết quả tìm kiếm (từ chối nếu không tìm thấy đoạn luật phù hợp).
+3. Kiểm tra tỷ lệ tài liệu gây nhiễu (từ chối nếu đa số kết quả là về sáng chế, nhãn hiệu...).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from retrieval.retriever import RetrievalHit
 import config
+from retrieval.retriever import RetrievalHit
 
-MIN_SCORE_TIN_CAY = config.MIN_SCORE_TIN_CAY
-MAX_DISTRACTOR_RATIO = config.MAX_DISTRACTOR_RATIO
-
-# Từ khóa nhận diện cứng câu hỏi thuộc domain ngoài phạm vi Luật SHTT
+# Danh sách từ khóa nhận diện các câu hỏi ngoài phạm vi Luật Sở hữu trí tuệ
 OUT_OF_SCOPE_KEYWORDS = [
-    # Domain giao thông
+    # Giao thông đường bộ
     "xe máy",
+    "xe ô tô",
     "vượt đèn đỏ",
-    "giao thông đường bộ",
     "bằng lái",
-    # Domain thuế
-    "thuế giá trị gia tăng",
-    "thuế thu nhập doanh nghiệp",
-    "thuế thu nhập cá nhân",
-    "mã số thuế",
-    # Domain lao động / bảo hiểm
-    "luật lao động",
-    "bảo hiểm xã hội",
-    "hợp đồng lao động",
-    # Domain hôn nhân / dân sự
+    "giấy phép lái xe",
+    "nồng độ cồn",
+    "vi phạm giao thông",
+    "tai nạn giao thông",
+    # Đất đai & Bất động sản
+    "sổ đỏ",
+    "sổ hồng",
+    "luật đất đai",
+    "sang tên sổ đỏ",
+    "tranh chấp đất đai",
+    "đền bù giải tỏa",
+    "cấp phép xây dựng",
+    # Hôn nhân & Gia đình / Dân sự
     "luật hôn nhân",
     "ly hôn",
+    "chia tài sản ly hôn",
+    "quyền nuôi con",
     "thừa kế",
-    # Domain hình sự / hành chính (ngoài SHTT)
+    "di chúc",
+    "cấp dưỡng",
+    # Hình sự & Xử lý vi phạm
     "bộ luật hình sự",
-    "xử phạt vi phạm hành chính",
-    "nghị định xử phạt",
+    "tội phạm",
+    "phạt tù",
+    "tù giam",
+    "tạm giữ",
+    "tạm giam",
+    "ma túy",
+    "cướp giật",
+    "tham ô",
+    # Thuế & Lao động / Bảo hiểm
+    "thuế thu nhập cá nhân",
+    "quyết toán thuế",
+    "hoàn thuế",
+    "bảo hiểm xã hội",
+    "trợ cấp thất nghiệp",
+    "nghỉ thai sản",
+    "hợp đồng lao động",
+    "sa thải trái luật",
+    "tranh chấp lao động",
 ]
 
 
 @dataclass
 class RefusalDecision:
+    """Kết quả kiểm tra câu hỏi từ Refusal Gate."""
     should_refuse: bool
     reason: str
 
 
 def decide(query: str, hits: list[RetrievalHit]) -> RefusalDecision:
-    """Đánh giá và đưa ra quyết định có từ chối trả lời câu hỏi hay không.
-
-    Args:
-        query: Câu hỏi của người dùng.
-        hits: Danh sách kết quả truy hồi (RetrievalHit).
-
-    Returns:
-        RefusalDecision: Kết quả chứa trạng thái should_refuse và lý do.
-    """
+    """Kiểm tra câu hỏi của người dùng có hợp lệ để trả lời hay cần từ chối."""
     query_low = query.lower()
+
+    # Bước 1: Kiểm tra từ khóa câu hỏi ngoài phạm vi
     for kw in OUT_OF_SCOPE_KEYWORDS:
         if kw in query_low:
             return RefusalDecision(
-                True, f"Câu hỏi chứa chủ đề ngoài phạm vi Luật Sở hữu trí tuệ ('{kw}')."
+                should_refuse=True,
+                reason=f"Câu hỏi thuộc chủ đề ngoài phạm vi chuyên môn ({kw}).",
             )
 
+    # Bước 2: Kiểm tra nếu không tìm thấy điều luật nào có độ tương đồng đạt yêu cầu
     if not hits:
         return RefusalDecision(
-            True, "Không truy hồi được điều khoản nào phù hợp."
+            should_refuse=True,
+            reason="Không tìm thấy điều khoản luật nào phù hợp trong dữ liệu (độ tương đồng dưới ngưỡng tin cậy).",
         )
 
-    in_scope_hits = [h for h in hits if not h.provision.is_distractor]
-    distractor_ratio = 1.0 - (len(in_scope_hits) / len(hits))
-    top_score = hits[0].score
-
-    if distractor_ratio >= MAX_DISTRACTOR_RATIO:
+    # Bước 3: Kiểm tra tỷ lệ các đoạn luật gây nhiễu (distractor) trong top kết quả
+    distractor_count = sum(1 for h in hits if h.provision.is_distractor)
+    distractor_ratio = distractor_count / len(hits)
+    if distractor_ratio > config.MAX_DISTRACTOR_RATIO:
         return RefusalDecision(
-            True,
-            f"{distractor_ratio:.0%} kết quả truy hồi thuộc nhóm dữ liệu nhiễu "
-            "(sáng chế/kiểu dáng/nhãn hiệu) — câu hỏi ngoài phạm vi quyền tác giả chương trình máy tính.",
+            should_refuse=True,
+            reason=(
+                f"Tỷ lệ dữ liệu nhiễu cao ({distractor_ratio:.1%} > "
+                f"{config.MAX_DISTRACTOR_RATIO:.0%}), câu hỏi có thể không thuộc phạm vi bản quyền phần mềm."
+            ),
         )
 
-    if not in_scope_hits:
-        return RefusalDecision(
-            True, "Không có điều khoản thuộc phạm vi phù hợp với câu hỏi."
-        )
-
-    if top_score < MIN_SCORE_TIN_CAY:
-        return RefusalDecision(
-            True,
-            f"Điểm tương đồng cao nhất ({top_score:.3f}) dưới ngưỡng tin cậy ({MIN_SCORE_TIN_CAY}).",
-        )
-
-    return RefusalDecision(False, "Đủ căn cứ để trả lời.")
+    # Đủ căn cứ để trả lời
+    return RefusalDecision(should_refuse=False, reason="Đủ căn cứ để trả lời.")

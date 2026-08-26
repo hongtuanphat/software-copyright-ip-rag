@@ -1,5 +1,4 @@
-"""
-generation/citation.py
+"""generation/citation.py
 
 Xây dựng cấu trúc trích dẫn (citation) trực tiếp từ metadata của các Điều khoản.
 Tránh tình trạng hallucination do LLM tự sinh số Điều/Khoản.
@@ -27,10 +26,12 @@ def build_citations(hits: list[RetrievalHit]) -> list[dict]:
             {
                 "provision_id": p.provision_id,
                 "article_no": p.article_no,
+                "clause_no": p.clause_no,
                 "title": p.title,
                 "law_code": p.law_code,
                 "status": p.status,
                 "source_url": p.source_url,
+                "text": p.text,
                 "score": round(h.score, 4),
             }
         )

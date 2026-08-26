@@ -1,0 +1,52 @@
+/* Global Styles */
+html, body, [class*="stApp"] {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Tối ưu khoảng cách container chính */
+.block-container {
+    padding-top: 4rem;
+    padding-bottom: 6rem;
+}
+
+/* General Buttons */
+.stButton > button {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* Primary Button (Sidebar "Đoạn chat mới") */
+button[kind="primary"] {
+    background-color: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+}
+button[kind="primary"] p {
+    color: #1e3a8a;
+    font-weight: 600;
+}
+button[kind="primary"]:hover {
+    background-color: #e2e8f0;
+    border-color: #1e3a8a;
+}
+
+/* Ẩn dấu mũi tên mặc định của thẻ details/summary trong Căn cứ pháp lý */
+details > summary {
+    list-style: none;
+}
+details > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Footer Disclaimer */
+.disclaimer-footer {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #94a3b8;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 999999;
+}

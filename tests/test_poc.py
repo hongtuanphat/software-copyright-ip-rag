@@ -1,17 +1,18 @@
-from pipeline import RAGPipeline, answer_rag
-"""
-tests/test_poc.py
+"""tests/test_poc.py
 
 Kiểm thử tự động cho các thành phần cốt lõi của pipeline RAG:
 chunking (cấp Điều/Khoản), metadata, retrieval status filter, refusal gate, citation và metrics.
 Chạy bộ test: pytest tests/ -v
 """
+from __future__ import annotations
+
 import copy
 import json
 import numpy as np
 import pytest
 
 import config
+from pipeline import RAGPipeline, answer_rag
 from ingestion.chunker import parse_law_text, Provision
 from ingestion.metadata import attach_effective_metadata, load_law_meta
 from retrieval.embedder import HashingFallbackEmbedder
@@ -300,3 +301,89 @@ def test_pipeline_api_answer_rag_helper():
     assert "citations" in data
     assert "is_refused" in data
     assert data["is_refused"] is False
+# ==============================================================================
+# BỔ SUNG KIỂM THỬ CHO TUẦN 5 (HYBRID SEARCH, CRAWLER ALERTS, EXPANDED REFUSAL)
+# ==============================================================================
+
+def test_retrieve_hybrid_rrf_ranking(provisions):
+    """Kiểm tra tính năng Hybrid Search kết hợp Dense FAISS và Sparse BM25."""
+    from main import index_corpus
+    from retrieval.retriever import retrieve_hybrid
+
+    embedder, faiss_idx, bm25_idx = index_corpus(provisions)
+    query = "Quyền tác giả đối với chương trình máy tính gồm những quyền nào?"
+
+    hits = retrieve_hybrid(
+        query=query,
+        provisions=provisions,
+        embedder=embedder,
+        faiss_index=faiss_idx,
+        bm25_index=bm25_idx,
+        top_k=5,
+    )
+
+    assert len(hits) == 5
+    assert all(h.score > 0 for h in hits)
+    # Kiểm tra điều luật quan trọng nhất (Điều 22 hoặc Điều 18, 19, 20) nằm trong top hits
+    article_nos = [h.provision.article_no for h in hits]
+    assert any(art in ["22", "18", "19", "20"] for art in article_nos)
+
+
+def test_refusal_gate_expanded_out_of_scope_keywords():
+    """Kiểm tra cơ chế từ chối với danh mục từ khóa mở rộng (đất đai, hôn nhân, hình sự)."""
+    out_of_scope_queries = [
+        "Thủ tục sang tên sổ đỏ nhà đất cần những giấy tờ gì?",
+        "Mức phân chia tài sản khi ly hôn theo Luật Hôn nhân và gia đình?",
+        "Hình phạt tù đối với tội phạm ma túy theo Bộ luật hình sự là bao nhiêu năm?",
+        "Quy định về đóng bảo hiểm xã hội và trợ cấp thất nghiệp?",
+    ]
+
+    for q in out_of_scope_queries:
+        decision = decide(q, hits=[])
+        assert decision.should_refuse is True, f"Phải từ chối câu hỏi ngoài phạm vi: {q}"
+        assert "ngoài phạm vi" in decision.reason.lower()
+
+
+def test_monitoring_crawler_and_effective_alerts(tmp_path):
+    """Kiểm tra module Crawler và phát cảnh báo hiệu lực văn bản sắp hết hạn."""
+    from monitoring.crawler import CrawlResult
+    from monitoring.effective_checker import apply_crawl_results, save_alerts, get_active_alerts
+    from ingestion.chunker import Provision
+
+    fake_provision = Provision(
+        provision_id="67-VBHN-VPQH_Art22_Kh1",
+        law_code="67/VBHN-VPQH",
+        article_no="22",
+        clause_no="1",
+        title="Quyền tác giả",
+        text="Nội dung điều luật...",
+        topic="quyen_tac_gia_ctmt",
+        is_distractor=False,
+        source_url="https://congbao.chinhphu.vn/...",
+        status="hieu_luc",
+    )
+
+    # Giả lập kết quả cào: văn bản sắp hết hiệu lực sau 20 ngày (trong ngưỡng 45 ngày)
+    from datetime import datetime, timezone, timedelta
+    future_date = (datetime.now(timezone.utc) + timedelta(days=20)).isoformat()
+
+    crawl_res = CrawlResult(
+        law_code="67/VBHN-VPQH",
+        source_url="https://congbao.chinhphu.vn/...",
+        crawled_at=datetime.now(timezone.utc).isoformat(),
+        status="hieu_luc",
+        effective_from="2026-03-23",
+        effective_to=future_date,
+        replaced_by=None,
+        is_mock=True,
+    )
+
+    updated_provs, alerts = apply_crawl_results([crawl_res], [fake_provision])
+    assert len(alerts) >= 1
+    assert alerts[0]["alert_type"] == "EXPIRING_SOON"
+
+    # Kiểm tra lưu và đọc alerts
+    alerts_file = tmp_path / "alerts_test.jsonl"
+    save_alerts(alerts, path=alerts_file)
+    active = get_active_alerts(path=alerts_file)
+    assert len(active) == len(alerts)

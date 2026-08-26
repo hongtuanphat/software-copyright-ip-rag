@@ -20,18 +20,15 @@ DATA_RAW_DIR = DATA_DIR / "raw"
 DATA_PROCESSED_DIR = DATA_DIR / "processed"
 
 # Đường dẫn file dữ liệu thô và file metadata hiệu lực văn bản
-RAW_DATA_DIR = DATA_RAW_DIR
-PROCESSED_DATA_DIR = DATA_PROCESSED_DIR
 RAW_LAW_FILE = DATA_RAW_DIR / "67-VBHN-VPQH.txt"
 METADATA_FILE = DATA_RAW_DIR / "vbhn_metadata.json"
 
-# Đường dẫn các file đầu ra đã qua xử lý (chunks, testset, vector index)
-CHUNKS_FILE = DATA_PROCESSED_DIR / "chunks.jsonl"
-CHUNKS_PATH = CHUNKS_FILE
+# Đường dẫn các file đầu ra đã qua xử lý (chunks, testset, vector index, alerts)
+CHUNKS_PATH = DATA_PROCESSED_DIR / "chunks.jsonl"
 TESTSET_PATH = DATA_PROCESSED_DIR / "testset.jsonl"
 ALERTS_PATH = DATA_PROCESSED_DIR / "alerts.jsonl"
-FAISS_INDEX_FILE = DATA_PROCESSED_DIR / "faiss.index"
-FAISS_INDEX_PATH = FAISS_INDEX_FILE
+FAISS_INDEX_PATH = DATA_PROCESSED_DIR / "faiss.index"
+
 
 # Cấu hình mô hình nhúng văn bản và mô hình ngôn ngữ lớn
 EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
@@ -56,9 +53,12 @@ LAW_CODE = "67/VBHN-VPQH"
 TOP_K = 5
 MAX_SEQ_LENGTH = 256
 EMBEDDING_DIM = 768
+RETRIEVAL_MODE = "hybrid"      # Chế độ truy hồi mặc định: "hybrid", "dense", hoặc "bm25"
+RRF_K = 60                     # Hằng số chuẩn cho thuật toán Reciprocal Rank Fusion
+CANDIDATE_POOL_SIZE = 20       # Số lượng ứng viên lấy từ mỗi nhánh trước khi hợp nhất RRF
 
 # Ngưỡng lọc và cổng từ chối (Refusal Gate)
-MIN_SCORE_TIN_CAY = 0.35      # Điểm tương đồng tối thiểu để xem kết quả là đáng tin
+MIN_SCORE_TIN_CAY = 0.35      # Điểm tương đồng ngữ nghĩa tối thiểu (Cosine Similarity) để xem kết quả là đáng tin
 MAX_DISTRACTOR_RATIO = 0.6    # Tỷ lệ tối đa các đoạn distractor trong top-k
 EFFECTIVE_STATUS_VALID = "hieu_luc"
 REFUSAL_THRESHOLD = 0.6
