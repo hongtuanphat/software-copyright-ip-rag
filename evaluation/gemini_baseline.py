@@ -1,4 +1,10 @@
-"""Script chạy Gemini baseline trên tập câu hỏi (không RAG)."""
+"""Chạy thử nghiệm đối chứng No-RAG (hỏi trực tiếp Gemini không kèm tài liệu luật):
+- Gửi các câu hỏi trong dev_set.json sang Gemini với cùng prompt quy tắc chuẩn.
+- Lưu kết quả ra file baseline_results.json để đối chiếu tỷ lệ ảo giác với RAG.
+- Có hỗ trợ lưu tự động từng câu (resume) và cờ --force nếu muốn chạy lại từ đầu.
+"""
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -6,147 +12,141 @@ import sys
 import time
 from pathlib import Path
 
-# Thêm thư mục gốc vào sys.path để chạy trực tiếp script
+# Nạp thư mục gốc vào sys.path để chạy trực tiếp từ bất kỳ đâu
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Đổi terminal Windows sang UTF-8 để in tiếng Việt không bị lỗi font
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 import config
-import google.generativeai as genai
-
-INSTRUCTION = """Bạn là Trợ lý Pháp lý chuyên sâu về Quyền tác giả đối với chương trình máy tính theo Luật Sở hữu trí tuệ Việt Nam (Văn bản hợp nhất số 67/VBHN-VPQH).
-
-NHIỆM VỤ: Dựa vào kiến thức pháp luật có sẵn của bạn, hãy đưa ra câu trả lời chuẩn xác, tự nhiên, mạch lạc và bám sát quy định của pháp luật. Không được giả định rằng bạn được cung cấp tài liệu bên ngoài.
-
-BỘ QUY TẮC BẮT BUỘC:
-1. NGUYÊN TẮC CĂN CỨ PHÁP LÝ:
-   - Chỉ trả lời dựa trên kiến thức pháp luật Việt Nam thực tế. Không tự ý suy diễn hoặc bịa đặt điều luật.
-   - Khi trả lời, mở đầu tự nhiên bằng cách dẫn chiếu luật (ví dụ: 'Căn cứ theo quy định của Luật Sở hữu trí tuệ...').
-   - Tuyệt đối không đề cập đến việc bạn không được cung cấp tài liệu hoặc đang làm thí nghiệm/baseline.
-
-2. BÓC TÁCH CHI TIẾT ĐẾN CẤP ĐIỂM (POINT-LEVEL):
-   - Cố gắng nêu rõ đến cấp 'Điểm ... Khoản ... Điều ...' nếu bạn nhớ chính xác.
-
-3. PHÂN TÍCH 2 TRƯỜNG HỢP (MẶC ĐỊNH VS CÓ THỎA THUẬN):
-   - Đối với việc thuê làm phần mềm, giao việc, chuyển nhượng: Luôn nêu rõ cả 2 trường hợp (1) Mặc định theo luật khi không có thỏa thuận và (2) Khi các bên có thỏa thuận riêng bằng văn bản.
-
-4. GIỚI HẠN PHẠM VI (BOUNDARY REFUSAL):
-   - Nếu câu hỏi hỏi về số tiền phạt cụ thể, năm tù, lệ phí mà luật chỉ nêu nguyên tắc xử lý chung (hoặc bạn không nhớ rõ), hãy hướng dẫn người dùng tra cứu Nghị định/Thông tư chuyên ngành.
-
-5. VĂN PHONG VÀ ĐỊNH DẠNG:
-   - Trình bày tự nhiên như chuyên viên tư vấn luật, dùng câu cú tiếng Việt chuẩn xác, lưu loát.
-   - Dùng gạch đầu dòng '-' đơn giản, in đậm tiêu đề rõ ràng. Tuyệt đối KHÔNG dùng các ký tự phân cách rườm rà như '***' hay in đậm lồng nhau."""
+from generation.llm import generate_no_rag
 
 
-def run_gemini(question: str, model_name: str) -> str:
-    """Gọi Gemini API với instruction cố định và câu hỏi."""
-    model = genai.GenerativeModel(model_name)
-    prompt = f"{INSTRUCTION}\n\nCâu hỏi: {question}"
-    response = model.generate_content(prompt)
-    return response.text
+def _call_with_retry(query: str, max_retries: int = 3) -> str:
+    """Gọi Gemini sinh câu trả lời, nếu chạm trần rate limit 429 thì tự động đợi rồi thử lại."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            ans = generate_no_rag(query)
+            if ans and not ans.startswith("[Baseline No-RAG] Cần có"):
+                return ans
+            if ans.startswith("[Baseline No-RAG] Cần có"):
+                return ans
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                wait_sec = 20 * attempt
+                print(f"\n  [Cảnh báo 429] Đang chạm trần RPM của Gemini. Chờ {wait_sec}s để hồi hạn ngạch (lần {attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                print(f"\n  [Lỗi kết nối] {e}. Thử lại sau 5s...")
+                time.sleep(5)
+    return "[Lỗi] Không thể lấy phản hồi sau nhiều lần thử do hạn ngạch API."
 
 
-def save_results(results_dict: dict, output_path: Path) -> None:
-    """Lưu kết quả ra file JSON."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(list(results_dict.values()), f, ensure_ascii=False, indent=2)
+def run_baseline_no_rag(
+    dataset_path: Path | None = None,
+    output_path: Path | None = None,
+    limit: int | None = None,
+    delay_seconds: float = 4.0,
+    force: bool = False,
+) -> None:
+    """Chạy lần lượt các câu hỏi và lưu câu trả lời trực tiếp từ Gemini."""
+    if dataset_path is None:
+        dataset_path = config.DATA_DIR / "evaluation" / "dev_set.json"
+    if output_path is None:
+        output_path = Path(__file__).resolve().parent / "baseline_results.json"
+
+    if not dataset_path.exists():
+        print(f"[Lỗi] Không tìm thấy file bộ câu hỏi tại: {dataset_path}")
+        return
+
+    with open(dataset_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    questions = data if isinstance(data, list) else data.get("questions", [])
+    if limit is not None:
+        questions = questions[:limit]
+
+    # Đọc kết quả cũ nếu có để hỗ trợ chạy tiếp câu còn thiếu (khi không bật --force)
+    results_dict: dict[str, dict] = {}
+    if not force and output_path.exists():
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, list):
+                    for item in saved:
+                        results_dict[item["id"]] = item
+        except Exception:
+            results_dict = {}
+
+    success_count = sum(1 for r in results_dict.values() if r.get("status") == "success")
+    print(f"Bắt đầu chạy đối chứng No-RAG cho {len(questions)} câu hỏi...")
+    if force:
+        print("-> Chế độ --force: Bỏ qua kết quả cũ, chạy lại từ đầu 100%.")
+    elif results_dict:
+        print(f"-> Chế độ Resume: Đã có {len(results_dict)} câu trong lịch sử ({success_count} thành công), sẽ chạy tiếp các câu còn lại hoặc bị lỗi.")
+
+    for i, item in enumerate(questions, 1):
+        q_id = item.get("id", str(i))
+        q_text = item.get("question", "")
+        q_group = item.get("group", "unknown")
+        gold_ids = item.get("gold_ids", [])
+
+        # Nếu câu này đã chạy thành công trước đó thì bỏ qua
+        if not force and q_id in results_dict and results_dict[q_id].get("status") == "success":
+            print(f"[{i}/{len(questions)}] Câu {q_id}: Đã có kết quả thành công từ trước, bỏ qua.")
+            continue
+
+        print(f"[{i}/{len(questions)}] Đang gửi câu hỏi {q_id}: {q_text[:60]}...")
+        t0 = time.time()
+        answer = _call_with_retry(q_text)
+        elapsed = time.time() - t0
+
+        if answer.startswith("[Lỗi]"):
+            status = "error"
+            error_msg = "API Error or Quota Exceeded"
+        else:
+            status = "success"
+            error_msg = ""
+
+        record = {
+            "id": q_id,
+            "group": q_group,
+            "question": q_text,
+            "gold_ids": gold_ids,
+            "baseline_answer": answer,
+            "execution_time_seconds": round(elapsed, 3),
+            "status": status
+        }
+        if error_msg:
+            record["error"] = error_msg
+            
+        results_dict[q_id] = record
+
+        # Lưu ngay xuống file sau mỗi câu để không bị mất dữ liệu nếu đứt mạng
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(list(results_dict.values()), f, ensure_ascii=False, indent=2)
+
+        # Nghỉ giữa các câu để tránh chạm trần 15 RPM của gói Free
+        time.sleep(delay_seconds)
+
+    final_success = sum(1 for r in results_dict.values() if r.get("status") == "success")
+    print(f"\nHoàn thành đối chứng No-RAG. Thành công: {final_success}/{len(questions)} câu. Đã lưu tại: {output_path}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Chạy Gemini baseline (No RAG).")
-    parser.add_argument("--limit", type=int, help="Giới hạn số lượng câu hỏi để test", default=None)
+    parser = argparse.ArgumentParser(description="Chạy đối chứng Zero-shot No-RAG trên tập câu hỏi kiểm thử.")
+    parser.add_argument("--limit", type=int, default=None, help="Giới hạn số lượng câu hỏi để test thử (ví dụ: --limit 5)")
+    parser.add_argument("--delay", type=float, default=4.0, help="Khoảng nghỉ giữa mỗi câu (mặc định 4.0s để không dính trần RPM)")
+    parser.add_argument("--force", action="store_true", help="Chạy lại mới hoàn toàn từ đầu, ghi đè kết quả cũ")
     args = parser.parse_args()
-
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("Lỗi: Không tìm thấy GEMINI_API_KEY trong environment.")
-        sys.exit(1)
-        
-    genai.configure(api_key=api_key)
-    
-    input_path = PROJECT_ROOT / "data" / "evaluation" / "questions.json"
-    output_path = PROJECT_ROOT / "data" / "evaluation" / "gemini_results.json"
-    
-    if not input_path.exists():
-        print(f"Lỗi: Không tìm thấy dataset tại {input_path}")
-        sys.exit(1)
-        
-    with open(input_path, "r", encoding="utf-8") as f:
-        questions = json.load(f)
-        
-    print(f"Đã nạp {len(questions)} câu hỏi từ {input_path}")
-    
-    if args.limit:
-        questions = questions[:args.limit]
-        print(f"Giới hạn chạy: {args.limit} câu")
-        
-    # Đọc kết quả cũ để phục vụ tính năng Resume
-    results_dict = {}
-    if output_path.exists():
-        try:
-            with open(output_path, "r", encoding="utf-8") as f:
-                old_results = json.load(f)
-                for r in old_results:
-                    results_dict[r["id"]] = r
-            
-            success_count = sum(1 for r in results_dict.values() if r.get("status") == "success")
-            print(f"Đã tìm thấy file kết quả cũ ({len(results_dict)} records, {success_count} câu đã thành công).")
-        except Exception as e:
-            print(f"Lỗi đọc file kết quả cũ, sẽ chạy lại từ đầu: {e}")
-
-    for i, item in enumerate(questions):
-        q_id = item["id"]
-        
-        # Bỏ qua nếu câu hỏi này đã chạy thành công trước đó
-        if q_id in results_dict and results_dict[q_id].get("status") == "success":
-            print(f"Bỏ qua [{i+1}/{len(questions)}] ID: {q_id} (Đã có kết quả thành công).")
-            continue
-            
-        question = item["question"]
-        print(f"Đang xử lý [{i+1}/{len(questions)}] ID: {q_id}...")
-        
-        try:
-            answer = run_gemini(question, config.GEMINI_MODEL_NAME)
-            results_dict[q_id] = {
-                "id": q_id,
-                "answer": answer,
-                "model": config.GEMINI_MODEL_NAME,
-                "status": "success"
-            }
-            # Lưu ngay xuống file
-            save_results(results_dict, output_path)
-            
-            # Trễ nhỏ tránh dồn dập request
-            time.sleep(1)
-            
-        except Exception as e:
-            error_msg = str(e)
-            
-            # Phân loại lỗi và tạo chuỗi báo lỗi ngắn gọn
-            if "429" in error_msg or "Quota exceeded" in error_msg:
-                short_error = "429 Quota Exceeded"
-                print(f"  [DỪNG] Bị chặn bởi rate limit (HTTP 429).")
-                is_quota_error = True
-            else:
-                short_error = "API Error"
-                print(f"  [LỖI] Gọi API thất bại cho ID {q_id}")
-                is_quota_error = False
-
-            # Chỉ lưu ngắn gọn vào file
-            results_dict[q_id] = {
-                "id": q_id,
-                "answer": "",
-                "model": config.GEMINI_MODEL_NAME,
-                "status": "error",
-                "error": short_error
-            }
-            save_results(results_dict, output_path)
-            
-            if is_quota_error:
-                break # Ngắt vòng lặp nếu là lỗi 429
-
-    print(f"\nTiến trình kết thúc. Đã lưu kết quả tại {output_path}")
+    run_baseline_no_rag(limit=args.limit, delay_seconds=args.delay, force=args.force)
 
 
 if __name__ == "__main__":
