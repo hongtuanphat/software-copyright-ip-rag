@@ -1,26 +1,66 @@
 """evaluation/baseline_no_rag.py
 
-Script chạy thử nghiệm Zero-shot No-RAG:
-Hỏi trực tiếp mô hình Gemini với 100 câu trong dev_set.json mà không kèm ngữ cảnh luật.
-Kết quả được lưu vào evaluation/baseline_results.json để đối chứng với kết quả chạy RAG.
+Chạy thử nghiệm đối chứng No-RAG (hỏi trực tiếp Gemini không kèm tài liệu luật):
+- Gửi 100 câu hỏi trong dev_set.json sang Gemini với cùng prompt 5 quy tắc chuẩn luật sư.
+- Lưu kết quả ra file baseline_results.json để đối chiếu tỷ lệ ảo giác với RAG.
+- Có hỗ trợ lưu tự động từng câu (resume) và cờ --force nếu muốn chạy lại từ đầu.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
+import sys
 import time
 from pathlib import Path
+
+# Nạp thư mục gốc vào sys.path để chạy trực tiếp từ bất kỳ đâu
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Đổi terminal Windows sang UTF-8 để in tiếng Việt không bị lỗi font
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 import config
 from generation.llm import generate_no_rag
 
 
+def _call_with_retry(query: str, max_retries: int = 3) -> str:
+    """Gọi Gemini sinh câu trả lời, nếu chạm trần rate limit 429 thì tự động đợi rồi thử lại."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            ans = generate_no_rag(query)
+            if ans and not ans.startswith("[Baseline No-RAG] Cần có"):
+                return ans
+            if ans.startswith("[Baseline No-RAG] Cần có"):
+                return ans
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                wait_sec = 20 * attempt
+                print(f"\n  [Cảnh báo 429] Đang chạm trần RPM của Gemini. Chờ {wait_sec}s để hồi hạn ngạch (lần {attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                print(f"\n  [Lỗi kết nối] {e}. Thử lại sau 5s...")
+                time.sleep(5)
+    return "[Lỗi] Không thể lấy phản hồi sau nhiều lần thử do hạn ngạch API."
+
+
 def run_baseline_no_rag(
     dataset_path: Path | None = None,
     output_path: Path | None = None,
+    limit: int | None = None,
+    delay_seconds: float = 4.0,
+    force: bool = False,
 ) -> None:
-    """Chạy lần lượt 100 câu hỏi và lưu lại câu trả lời trực tiếp từ Gemini."""
+    """Chạy lần lượt các câu hỏi và lưu câu trả lời trực tiếp từ Gemini."""
     if dataset_path is None:
-        dataset_path = config.DATA_DIR / "dev_set.json"
+        dataset_path = config.DATA_DIR / "evaluation" / "dev_set.json"
     if output_path is None:
         output_path = Path(__file__).resolve().parent / "baseline_results.json"
 
@@ -31,35 +71,75 @@ def run_baseline_no_rag(
     with open(dataset_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    questions = data.get("questions", [])
-    print(f"Bắt đầu chạy đối chứng No-RAG cho {len(questions)} câu hỏi...")
+    questions = data if isinstance(data, list) else data.get("questions", [])
+    if limit is not None:
+        questions = questions[:limit]
 
-    results = []
+    # Đọc kết quả cũ nếu có để hỗ trợ chạy tiếp câu còn thiếu (khi không bật --force)
+    existing_results: dict[str, dict] = {}
+    if not force and output_path.exists():
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, list):
+                    for item in saved:
+                        if item.get("baseline_answer") and not item["baseline_answer"].startswith("[Lỗi]"):
+                            existing_results[item["id"]] = item
+        except Exception:
+            existing_results = {}
+
+    print(f"Bắt đầu chạy đối chứng No-RAG cho {len(questions)} câu hỏi...")
+    if force:
+        print("-> Chế độ --force: Bỏ qua kết quả cũ, chạy lại từ đầu 100%.")
+    elif existing_results:
+        print(f"-> Chế độ Resume: Đã có {len(existing_results)} câu hoàn thành, sẽ chạy tiếp các câu còn lại.")
+
+    all_results: list[dict] = []
     for i, item in enumerate(questions, 1):
         q_id = item.get("id", str(i))
         q_text = item.get("question", "")
-        q_type = item.get("type", "unknown")
+        q_group = item.get("group", "unknown")
+        gold_ids = item.get("gold_ids", [])
+
+        # Nếu câu này đã chạy thành công trước đó thì lấy lại luôn
+        if not force and q_id in existing_results:
+            print(f"[{i}/{len(questions)}] Câu {q_id}: Đã có kết quả từ trước, bỏ qua.")
+            all_results.append(existing_results[q_id])
+            continue
 
         print(f"[{i}/{len(questions)}] Đang gửi câu hỏi {q_id}: {q_text[:60]}...")
         t0 = time.time()
-        answer = generate_no_rag(q_text)
+        answer = _call_with_retry(q_text)
         elapsed = time.time() - t0
 
-        results.append({
+        record = {
             "id": q_id,
-            "type": q_type,
+            "group": q_group,
             "question": q_text,
-            "ground_truth_provisions": item.get("ground_truth_provisions", []),
+            "gold_ids": gold_ids,
             "baseline_answer": answer,
             "execution_time_seconds": round(elapsed, 3),
-        })
-        time.sleep(0.5)
+        }
+        all_results.append(record)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+        # Lưu ngay xuống file sau mỗi câu để không bị mất dữ liệu nếu đứt mạng
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(all_results, f, ensure_ascii=False, indent=2)
 
-    print(f"Hoàn thành đối chứng No-RAG. Đã lưu kết quả tại: {output_path}")
+        # Nghỉ giữa các câu để tránh chạm trần 15 RPM của gói Free
+        time.sleep(delay_seconds)
+
+    print(f"\nHoàn thành đối chứng No-RAG cho {len(all_results)}/{len(questions)} câu. Đã lưu tại: {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Chạy đối chứng Zero-shot No-RAG trên tập câu hỏi kiểm thử.")
+    parser.add_argument("--limit", type=int, default=None, help="Giới hạn số lượng câu hỏi để test thử (ví dụ: --limit 5)")
+    parser.add_argument("--delay", type=float, default=4.0, help="Khoảng nghỉ giữa mỗi câu (mặc định 4.0s để không dính trần RPM)")
+    parser.add_argument("--force", action="store_true", help="Chạy lại mới hoàn toàn từ đầu, ghi đè kết quả cũ")
+    args = parser.parse_args()
+    run_baseline_no_rag(limit=args.limit, delay_seconds=args.delay, force=args.force)
 
 
 if __name__ == "__main__":
-    run_baseline_no_rag()
+    main()

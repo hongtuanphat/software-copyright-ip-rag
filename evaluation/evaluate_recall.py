@@ -1,16 +1,10 @@
 """evaluation/evaluate_recall.py
 
-Script đánh giá định lượng độ chính xác của Tầng Truy hồi (Retrieval) trên tập dev_set.json:
-- Chạy từng câu hỏi kiểm thử qua các pipeline tìm kiếm và tính các chỉ số Recall@1, Recall@3, Recall@5, Recall@10.
-- So sánh đối chứng hiệu quả giữa 3 phương pháp:
-    1. Single Dense Retrieval (FAISS với mô hình vietnamese-bi-encoder)
-    2. Single Sparse Retrieval (BM25Okapi)
-    3. Hybrid Search (Kết hợp Dense + BM25 qua thuật toán Reciprocal Rank Fusion - RRF)
-- Đánh giá ở cả 2 cấp độ: Cấp Khoản (Exact Clause) và Cấp Điều (Hierarchical Article).
-
-Mỗi câu hỏi có thể có nhiều gold_ids; do đó, Recall@K được tính theo công thức giao tập hợp:
-    Recall@K = |Gold ∩ TopK| / |Gold|
-(tính đúng theo tỷ lệ các điều luật tìm được trên tổng số điều luật cần tìm, không phải chỉ có 1 hit là 1.0).
+Đo lường độ chính xác của tầng truy hồi (Retrieval) trên tập dev_set.json:
+- Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 3 phương pháp: Dense (FAISS), Sparse (BM25) và Hybrid (RRF).
+- Đánh giá ở cả 2 cấp độ: đúng chính xác Khoản luật và đúng cấp Điều luật.
+- Tự động in bảng so sánh và lưu kết quả chi tiết từng câu vào recall_results.json.
+- Công thức tính Recall@K: |Gold ∩ TopK| / |Gold| (tính đúng theo tỷ lệ điều luật tìm được trên tổng số điều luật cần tìm).
 """
 from __future__ import annotations
 
@@ -22,7 +16,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Đảm bảo in tiếng Việt chuẩn trên Windows terminal
+# Nạp thư mục gốc vào sys.path để chạy trực tiếp từ bất kỳ đâu
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Đổi terminal Windows sang UTF-8 để in tiếng Việt không bị lỗi font
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if sys.stderr and hasattr(sys.stderr, "reconfigure"):
@@ -51,11 +50,11 @@ def load_dataset(dataset_path: Path) -> list[dict[str, Any]]:
         return data["questions"]
     if isinstance(data, list):
         return data
-    raise ValueError(f"Định dạng dữ liệu không hợp lệ tại {dataset_path}")
+    raise ValueError("Định dạng file dev_set.json không hợp lệ.")
 
 
 def load_corpus(chunks_path: Path) -> list[Provision]:
-    """Đọc toàn bộ các đoạn luật (Provision) từ file chunks.jsonl."""
+    """Nạp danh sách các đoạn luật (Provision) từ file chunks.jsonl."""
     if not chunks_path.exists():
         raise FileNotFoundError(f"Không tìm thấy file chunks tại: {chunks_path}")
 
@@ -68,29 +67,30 @@ def load_corpus(chunks_path: Path) -> list[Provision]:
     return provisions
 
 
-def _extract_article_no(provision_id: str) -> str:
-    """Bóc tách số hiệu Điều từ mã định danh provision_id."""
-    m = re.search(r"Art(\d+[a-z]?)", provision_id)
-    return m.group(1) if m else provision_id
-
-
 def calculate_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
-    """Tính Recall@K ở cấp Khoản (Exact Clause Match)."""
+    """Tính Recall@K ở cấp độ phân giải chính xác (Exact Clause Match)."""
     if not gold_ids:
         return 0.0
-    top_k_retrieved = set(retrieved_ids[:k])
-    matched = sum(1 for gid in gold_ids if gid in top_k_retrieved)
-    return matched / len(gold_ids)
+    top_k = set(retrieved_ids[:k])
+    gold_set = set(gold_ids)
+    hits = len(gold_set.intersection(top_k))
+    return hits / len(gold_set)
 
 
 def calculate_hierarchical_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
-    """Tính Recall@K ở cấp Điều (Hierarchical Article Match)."""
+    """Tính Recall@K ở cấp độ phân giải Điều (Hierarchical Article Match)."""
     if not gold_ids:
         return 0.0
-    gold_articles = set(_extract_article_no(gid) for gid in gold_ids)
-    retrieved_articles = set(_extract_article_no(rid) for rid in retrieved_ids[:k])
-    matched = sum(1 for art in gold_articles if art in retrieved_articles)
-    return matched / len(gold_articles)
+
+    def to_article_id(pid: str) -> str:
+        match = re.search(r"(Art\d+)", pid)
+        return match.group(1) if match else pid
+
+    gold_articles = {to_article_id(gid) for gid in gold_ids}
+    top_k_articles = {to_article_id(rid) for rid in retrieved_ids[:k]}
+
+    hits = len(gold_articles.intersection(top_k_articles))
+    return hits / len(gold_articles)
 
 
 def evaluate_system(
@@ -100,7 +100,7 @@ def evaluate_system(
     faiss_index: FaissFlatIndex,
     bm25_index: Bm25Index,
     k_values: list[int] = [1, 3, 5, 10],
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Chạy đo lường toàn diện trên 3 chế độ: Dense, BM25 và Hybrid."""
     results_by_mode: dict[str, dict[str, list[float]]] = {
         "Dense (FAISS)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
@@ -110,8 +110,11 @@ def evaluate_system(
 
     # Lọc các câu hỏi có nhãn ground truth (Nhóm 1, 2, 3, 4)
     eval_questions = [q for q in questions if (q.get("gold_ids") or q.get("ground_truth_provisions"))]
+    detailed_results: list[dict[str, Any]] = []
 
     for q in eval_questions:
+        q_id = q.get("id", "")
+        q_group = q.get("group", "")
         query_text = q.get("question", "")
         gold_ids = q.get("gold_ids") or q.get("ground_truth_provisions") or []
 
@@ -126,6 +129,29 @@ def evaluate_system(
         # 3. Chạy Hybrid
         hybrid_hits = retrieve_hybrid(query_text, provisions, embedder, faiss_index, bm25_index, top_k=max(k_values))
         hybrid_pids = [h.provision.provision_id for h in hybrid_hits]
+
+        query_record: dict[str, Any] = {
+            "id": q_id,
+            "group": q_group,
+            "question": query_text,
+            "gold_ids": gold_ids,
+            "dense": {
+                "retrieved_ids": dense_pids,
+                **{f"recall@{k}": calculate_recall_at_k(gold_ids, dense_pids, k) for k in k_values},
+                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, dense_pids, k) for k in k_values},
+            },
+            "bm25": {
+                "retrieved_ids": bm25_pids,
+                **{f"recall@{k}": calculate_recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
+                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
+            },
+            "hybrid": {
+                "retrieved_ids": hybrid_pids,
+                **{f"recall@{k}": calculate_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
+                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
+            },
+        }
+        detailed_results.append(query_record)
 
         for mode_name, pids in [
             ("Dense (FAISS)", dense_pids),
@@ -144,7 +170,7 @@ def evaluate_system(
             metric_name: round(float(np.mean(vals)), 4) if vals else 0.0
             for metric_name, vals in metrics.items()
         }
-    return summary
+    return summary, detailed_results
 
 
 def print_summary_table(summary: dict[str, Any]) -> None:
@@ -169,6 +195,7 @@ def main() -> None:
     dataset_path = config.DATA_DIR / "evaluation" / "dev_set.json"
     chunks_path = config.CHUNKS_PATH
     faiss_index_path = config.FAISS_INDEX_PATH
+    output_path = Path(__file__).resolve().parent / "recall_results.json"
 
     print("Đang nạp dữ liệu và tài nguyên phục vụ đánh giá Recall...")
     questions = load_dataset(dataset_path)
@@ -180,8 +207,17 @@ def main() -> None:
     # Khởi tạo chỉ mục BM25
     bm25_index = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
 
-    summary = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)
+    summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)
     print_summary_table(summary)
+
+    # Lưu đầy đủ kết quả chi tiết từng câu và bảng tổng kết
+    output_payload = {
+        "summary": summary,
+        "results": detailed_results,
+    }
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(output_payload, f, ensure_ascii=False, indent=2)
+    print(f"-> Đã tự động cập nhật kết quả CHI TIẾT {len(detailed_results)} câu hỏi vào: {output_path}")
 
 
 if __name__ == "__main__":

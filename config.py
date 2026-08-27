@@ -35,7 +35,7 @@ EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
 LLM_PROVIDER = "gemini"
 GEMINI_MODEL_NAME = "gemini-3.5-flash-lite"
 GEMINI_TEMPERATURE = 0.0  # Để 0 để mô hình trả lời ổn định, bám sát từng điều luật
-GEMINI_MAX_TOKENS = 2048
+GEMINI_MAX_TOKENS = 4096
 
 # Phân loại chủ đề trong phạm vi và chủ đề gây nhiễu (distractor)
 IN_SCOPE_TOPICS = {"quyen_tac_gia_ctmt"}

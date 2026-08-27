@@ -12,6 +12,7 @@ from google.genai import types
 
 import config
 from retrieval.retriever import RetrievalHit
+from generation.prompt_builder import SYSTEM_INSTRUCTION
 
 
 def get_api_key() -> Optional[str]:
@@ -34,16 +35,18 @@ def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> str:
 
 
 def generate_no_rag(query: str) -> str:
-    """Hỏi trực tiếp Gemini không kèm tài liệu tham khảo để làm mốc đối chứng (No-RAG)."""
+    """Hỏi trực tiếp Gemini không kèm tài liệu luật để làm mốc đối chứng (No-RAG)."""
     api_key = get_api_key()
     if not api_key:
         return "[Baseline No-RAG] Cần có GEMINI_API_KEY để chạy thử nghiệm này."
 
     raw_prompt = (
-        "Bạn là một trợ lý ảo. Hãy trả lời câu hỏi sau về pháp luật Việt Nam "
-        "dựa trên kiến thức sẵn có của bạn mà không có tài liệu tham khảo:\n\n"
-        f"CÂU HỎI: {query}\n\n"
-        "Hãy trả lời chi tiết và nêu rõ các Điều/Khoản luật liên quan (nếu biết)."
+        f"{SYSTEM_INSTRUCTION}\n\n"
+        f"--- [TÀI LIỆU LUẬT THAM KHẢO] ---\n"
+        f"(Không có tài liệu tham khảo được cung cấp. Hãy trả lời câu hỏi dựa trên kiến thức sẵn có của bạn)\n\n"
+        f"--- [CÂU HỎI CỦA NGƯỜI DÙNG] ---\n"
+        f"{query}\n\n"
+        f"--- [CÂU TRẢ LỜI CỦA TRỢ LÝ PHÁP LÝ] ---"
     )
     return _call_gemini(raw_prompt, api_key)
 
