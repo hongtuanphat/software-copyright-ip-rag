@@ -1,24 +1,41 @@
 """evaluation/metrics.py
 
 Các hàm tính toán chỉ số đánh giá cho hệ thống RAG:
-- Recall@k cho phần tìm kiếm văn bản.
+- Recall@k cho tầng tìm kiếm văn bản (ở cả 2 cấp độ: Cấp Khoản chính xác và Cấp Điều phân cấp).
 - Ma trận nhầm lẫn (Confusion Matrix) đánh giá năng lực của bộ lọc từ chối (Refusal Gate).
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Sequence
 import numpy as np
 
 
 def recall_at_k(actual_provisions: list[str], retrieved_provisions: list[str], k: int) -> float:
-    """Tính tỷ lệ tìm đúng các đoạn luật trong top k kết quả."""
+    """Tính tỷ lệ tìm đúng các đoạn luật trong top k kết quả ở cấp độ chính xác (Exact Clause Match)."""
     if not actual_provisions:
         return 0.0
     top_k_retrieved = set(retrieved_provisions[:k])
     actual_set = set(actual_provisions)
     hits = len(actual_set.intersection(top_k_retrieved))
     return hits / len(actual_set)
+
+
+def hierarchical_article_recall_at_k(actual_provisions: list[str], retrieved_provisions: list[str], k: int) -> float:
+    """Tính Recall@k ở cấp độ Điều luật (Hierarchical Article Match) để chẩn đoán lỗi."""
+    if not actual_provisions:
+        return 0.0
+
+    def to_article_id(pid: str) -> str:
+        match = re.search(r"(Art\d+)", pid)
+        return match.group(1) if match else pid
+
+    gold_articles = {to_article_id(gid) for gid in actual_provisions}
+    top_k_articles = {to_article_id(rid) for rid in retrieved_provisions[:k]}
+
+    hits = len(gold_articles.intersection(top_k_articles))
+    return hits / len(gold_articles)
 
 
 @dataclass

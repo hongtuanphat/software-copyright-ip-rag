@@ -2,16 +2,14 @@
 
 Đo lường độ chính xác của tầng truy hồi (Retrieval) trên tập dev_set.json:
 - Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 3 phương pháp: Dense (FAISS), Sparse (BM25) và Hybrid (RRF).
-- Đánh giá ở cả 2 cấp độ: đúng chính xác Khoản luật và đúng cấp Điều luật.
+- Đánh giá ở cả 2 cấp độ: đúng chính xác Khoản luật (chỉ số chính) và đúng cấp Điều luật (chẩn đoán).
 - Tự động in bảng so sánh và lưu kết quả chi tiết từng câu vào recall_results.json.
-- Công thức tính Recall@K: |Gold ∩ TopK| / |Gold| (tính đúng theo tỷ lệ điều luật tìm được trên tổng số điều luật cần tìm).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -36,6 +34,7 @@ from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
 from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
+from evaluation.metrics import recall_at_k, hierarchical_article_recall_at_k
 
 
 def load_dataset(dataset_path: Path) -> list[dict[str, Any]]:
@@ -65,32 +64,6 @@ def load_corpus(chunks_path: Path) -> list[Provision]:
             if line:
                 provisions.append(Provision(**json.loads(line)))
     return provisions
-
-
-def calculate_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
-    """Tính Recall@K ở cấp độ phân giải chính xác (Exact Clause Match)."""
-    if not gold_ids:
-        return 0.0
-    top_k = set(retrieved_ids[:k])
-    gold_set = set(gold_ids)
-    hits = len(gold_set.intersection(top_k))
-    return hits / len(gold_set)
-
-
-def calculate_hierarchical_recall_at_k(gold_ids: list[str], retrieved_ids: list[str], k: int) -> float:
-    """Tính Recall@K ở cấp độ phân giải Điều (Hierarchical Article Match)."""
-    if not gold_ids:
-        return 0.0
-
-    def to_article_id(pid: str) -> str:
-        match = re.search(r"(Art\d+)", pid)
-        return match.group(1) if match else pid
-
-    gold_articles = {to_article_id(gid) for gid in gold_ids}
-    top_k_articles = {to_article_id(rid) for rid in retrieved_ids[:k]}
-
-    hits = len(gold_articles.intersection(top_k_articles))
-    return hits / len(gold_articles)
 
 
 def evaluate_system(
@@ -137,18 +110,18 @@ def evaluate_system(
             "gold_ids": gold_ids,
             "dense": {
                 "retrieved_ids": dense_pids,
-                **{f"recall@{k}": calculate_recall_at_k(gold_ids, dense_pids, k) for k in k_values},
-                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, dense_pids, k) for k in k_values},
+                **{f"recall@{k}": recall_at_k(gold_ids, dense_pids, k) for k in k_values},
+                **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, dense_pids, k) for k in k_values},
             },
             "bm25": {
                 "retrieved_ids": bm25_pids,
-                **{f"recall@{k}": calculate_recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
-                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
+                **{f"recall@{k}": recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
+                **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, bm25_pids, k) for k in k_values},
             },
             "hybrid": {
                 "retrieved_ids": hybrid_pids,
-                **{f"recall@{k}": calculate_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
-                **{f"article_recall@{k}": calculate_hierarchical_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
+                **{f"recall@{k}": recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
+                **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
             },
         }
         detailed_results.append(query_record)
@@ -159,8 +132,8 @@ def evaluate_system(
             ("Hybrid (FAISS+BM25+RRF)", hybrid_pids),
         ]:
             for k in k_values:
-                r_k = calculate_recall_at_k(gold_ids, pids, k)
-                art_r_k = calculate_hierarchical_recall_at_k(gold_ids, pids, k)
+                r_k = recall_at_k(gold_ids, pids, k)
+                art_r_k = hierarchical_article_recall_at_k(gold_ids, pids, k)
                 results_by_mode[mode_name][f"recall@{k}"].append(r_k)
                 results_by_mode[mode_name][f"article_recall@{k}"].append(art_r_k)
 

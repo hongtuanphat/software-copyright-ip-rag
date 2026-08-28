@@ -1,9 +1,9 @@
-"""evaluation/baseline_no_rag.py
+"""evaluation/gemini_baseline.py
 
 Chạy thử nghiệm đối chứng No-RAG (hỏi trực tiếp Gemini không kèm tài liệu luật):
 - Gửi 100 câu hỏi trong dev_set.json sang Gemini với cùng prompt 5 quy tắc chuẩn luật sư.
 - Lưu kết quả ra file baseline_results.json để đối chiếu tỷ lệ ảo giác với RAG.
-- Có hỗ trợ lưu tự động từng câu (resume) và cờ --force nếu muốn chạy lại từ đầu.
+- Có hỗ trợ lưu tự động từng câu (resume), đếm số câu thành công và cờ --force nếu muốn chạy lại từ đầu.
 """
 from __future__ import annotations
 
@@ -76,41 +76,46 @@ def run_baseline_no_rag(
         questions = questions[:limit]
 
     # Đọc kết quả cũ nếu có để hỗ trợ chạy tiếp câu còn thiếu (khi không bật --force)
-    existing_results: dict[str, dict] = {}
+    results_dict: dict[str, dict] = {}
     if not force and output_path.exists():
         try:
             with open(output_path, "r", encoding="utf-8") as f:
                 saved = json.load(f)
                 if isinstance(saved, list):
                     for item in saved:
-                        if item.get("baseline_answer") and not item["baseline_answer"].startswith("[Lỗi]"):
-                            existing_results[item["id"]] = item
+                        results_dict[item["id"]] = item
         except Exception:
-            existing_results = {}
+            results_dict = {}
 
+    success_count = sum(1 for r in results_dict.values() if r.get("status") == "success")
     print(f"Bắt đầu chạy đối chứng No-RAG cho {len(questions)} câu hỏi...")
     if force:
         print("-> Chế độ --force: Bỏ qua kết quả cũ, chạy lại từ đầu 100%.")
-    elif existing_results:
-        print(f"-> Chế độ Resume: Đã có {len(existing_results)} câu hoàn thành, sẽ chạy tiếp các câu còn lại.")
+    elif results_dict:
+        print(f"-> Chế độ Resume: Đã có {len(results_dict)} câu trong lịch sử ({success_count} thành công), sẽ chạy tiếp các câu còn lại.")
 
-    all_results: list[dict] = []
     for i, item in enumerate(questions, 1):
         q_id = item.get("id", str(i))
         q_text = item.get("question", "")
         q_group = item.get("group", "unknown")
         gold_ids = item.get("gold_ids", [])
 
-        # Nếu câu này đã chạy thành công trước đó thì lấy lại luôn
-        if not force and q_id in existing_results:
-            print(f"[{i}/{len(questions)}] Câu {q_id}: Đã có kết quả từ trước, bỏ qua.")
-            all_results.append(existing_results[q_id])
+        # Nếu câu này đã chạy thành công trước đó thì bỏ qua
+        if not force and q_id in results_dict and results_dict[q_id].get("status") == "success":
+            print(f"[{i}/{len(questions)}] Câu {q_id}: Đã có kết quả thành công từ trước, bỏ qua.")
             continue
 
         print(f"[{i}/{len(questions)}] Đang gửi câu hỏi {q_id}: {q_text[:60]}...")
         t0 = time.time()
         answer = _call_with_retry(q_text)
         elapsed = time.time() - t0
+
+        if answer.startswith("[Lỗi]"):
+            status = "error"
+            error_msg = "API Error or Quota Exceeded"
+        else:
+            status = "success"
+            error_msg = ""
 
         record = {
             "id": q_id,
@@ -119,17 +124,22 @@ def run_baseline_no_rag(
             "gold_ids": gold_ids,
             "baseline_answer": answer,
             "execution_time_seconds": round(elapsed, 3),
+            "status": status,
         }
-        all_results.append(record)
+        if error_msg:
+            record["error"] = error_msg
+
+        results_dict[q_id] = record
 
         # Lưu ngay xuống file sau mỗi câu để không bị mất dữ liệu nếu đứt mạng
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(all_results, f, ensure_ascii=False, indent=2)
+            json.dump(list(results_dict.values()), f, ensure_ascii=False, indent=2)
 
         # Nghỉ giữa các câu để tránh chạm trần 15 RPM của gói Free
         time.sleep(delay_seconds)
 
-    print(f"\nHoàn thành đối chứng No-RAG cho {len(all_results)}/{len(questions)} câu. Đã lưu tại: {output_path}")
+    final_success = sum(1 for r in results_dict.values() if r.get("status") == "success")
+    print(f"\nHoàn thành đối chứng No-RAG. Thành công: {final_success}/{len(questions)} câu. Đã lưu tại: {output_path}")
 
 
 def main() -> None:
