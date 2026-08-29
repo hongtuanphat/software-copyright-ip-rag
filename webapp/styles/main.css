@@ -1,42 +1,84 @@
-/* Global Styles */
-html, body, [class*="stApp"] {
-    font-family: 'Inter', sans-serif;
-}
+/* GLOBAL STYLES */
+
 
 /* Tối ưu khoảng cách container chính */
 .block-container {
     padding-top: 4rem;
-    padding-bottom: 6rem;
+    padding-bottom: 5rem;
 }
 
-/* General Buttons */
-.stButton > button {
+
+/* BUTTON STYLES */
+.stButton>button {
     border-radius: 8px;
     font-weight: 500;
     transition: all 0.2s ease;
 }
 
-/* Primary Button (Sidebar "Đoạn chat mới") */
+/*Đoạn chat mới*/
 button[kind="primary"] {
     background-color: #f1f5f9;
     border: 1px solid rgba(15, 23, 42, 0.1);
 }
+
+
 button[kind="primary"] p {
     color: #1e3a8a;
     font-weight: 600;
 }
+
+
 button[kind="primary"]:hover {
     background-color: #e2e8f0;
     border-color: #1e3a8a;
 }
 
-/* Ẩn dấu mũi tên mặc định của thẻ details/summary trong Căn cứ pháp lý */
-details > summary {
-    list-style: none;
-}
-details > summary::-webkit-details-marker {
+
+/* CHAT COMPONENT STYLES */
+
+
+/* Ẩn hoàn toàn khối chứa avatar trong khung chat */
+div[data-testid="stChatMessage"]>div:first-child {
     display: none;
 }
+
+
+/* Loại bỏ margin-bottom dư thừa của thẻ p cuối cùng*/
+div[data-testid="stChatMessageContent"] p:last-child,
+div[data-testid="stMarkdownContainer"]>p:last-child {
+    margin-bottom: 0;
+}
+
+/* --- Tin nhắn người dùng --- */
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+    width: fit-content !important;
+    max-width: 80% !important;
+    margin: 0 0 1.5rem auto !important;
+    padding: 1rem 1.5rem;
+    background-color: #1e3a8a;
+    border-radius: 20px 20px 4px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) div[data-testid="stChatMessageContent"] {
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) p {
+    color: #ffffff;
+    text-align: center;
+    margin: 0 !important;
+    overflow-wrap: anywhere;
+}
+
 
 /* Footer Disclaimer */
 .disclaimer-footer {
@@ -49,4 +91,4 @@ details > summary::-webkit-details-marker {
     white-space: nowrap;
     pointer-events: none;
     z-index: 999999;
-}
+} 

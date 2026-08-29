@@ -26,6 +26,5 @@ def render_welcome() -> None:
     for i, sug in enumerate(suggestions):
         if cols[i].button(sug, use_container_width=True):
             st.session_state["pending_prompt"] = sug
-            # Không gọi st.rerun() — Streamlit tự rerun sau button click.
-            # Lần rerun đó handle_chat_interaction() sẽ pop pending_prompt và xử lý.
+            st.rerun()
 
