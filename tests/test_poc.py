@@ -157,17 +157,19 @@ def test_faiss_index_save_and_load(tmp_path):
     assert hits[0][0] == "test_id_0"
 
 
-def test_vector_id_and_embedding_model_populated(provisions):
+def test_vector_id_and_embedding_model_populated(provisions, tmp_path):
     from main import index_corpus
 
-    embedder, faiss_idx, bm25 = index_corpus(provisions)
+    tmp_chunks = tmp_path / "chunks.jsonl"
+    tmp_index = tmp_path / "faiss.index"
+    embedder, faiss_idx, bm25 = index_corpus(provisions, output_index_path=tmp_index, output_chunks_path=tmp_chunks)
 
     for i, p in enumerate(provisions):
         assert p.vector_id == i
         assert p.embedding_model is not None
 
-    assert config.CHUNKS_PATH.exists()
-    lines = config.CHUNKS_PATH.read_text(encoding="utf-8").strip().splitlines()
+    assert tmp_chunks.exists()
+    lines = tmp_chunks.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == len(provisions)
 
     for i, line in enumerate(lines):
@@ -190,11 +192,13 @@ def test_bm25_index_search(provisions):
     assert "Art22" in top_pid
 
 
-def test_evaluate_retriever_recall(provisions):
+def test_evaluate_retriever_recall(provisions, tmp_path):
     from retrieval.retriever import evaluate_retriever_recall
     from main import index_corpus
 
-    embedder, faiss_idx, _ = index_corpus(provisions)
+    tmp_chunks = tmp_path / "chunks.jsonl"
+    tmp_index = tmp_path / "faiss.index"
+    embedder, faiss_idx, _ = index_corpus(provisions, output_index_path=tmp_index, output_chunks_path=tmp_chunks)
     eval_set = [
         {
             "question": "Quyền tác giả đối với chương trình máy tính",
@@ -305,12 +309,14 @@ def test_pipeline_api_answer_rag_helper():
 # BỔ SUNG KIỂM THỬ CHO TUẦN 5 (HYBRID SEARCH, CRAWLER ALERTS, EXPANDED REFUSAL)
 # ==============================================================================
 
-def test_retrieve_hybrid_rrf_ranking(provisions):
+def test_retrieve_hybrid_rrf_ranking(provisions, tmp_path):
     """Kiểm tra tính năng Hybrid Search kết hợp Dense FAISS và Sparse BM25."""
     from main import index_corpus
     from retrieval.retriever import retrieve_hybrid
 
-    embedder, faiss_idx, bm25_idx = index_corpus(provisions)
+    tmp_chunks = tmp_path / "chunks.jsonl"
+    tmp_index = tmp_path / "faiss.index"
+    embedder, faiss_idx, bm25_idx = index_corpus(provisions, output_index_path=tmp_index, output_chunks_path=tmp_chunks)
     query = "Quyền tác giả đối với chương trình máy tính gồm những quyền nào?"
 
     hits = retrieve_hybrid(
@@ -387,3 +393,53 @@ def test_monitoring_crawler_and_effective_alerts(tmp_path):
     save_alerts(alerts, path=alerts_file)
     active = get_active_alerts(path=alerts_file)
     assert len(active) == len(alerts)
+# ---------------------------------------------------------------------------
+# Các bài kiểm tra cho Semantic Reranker & 2-Stage Retrieval (Tuần 6)
+# ---------------------------------------------------------------------------
+def test_cross_encoder_reranker(provisions):
+    """Kiểm tra CrossEncoderReranker chấm điểm và xếp hạng lại danh sách hits."""
+    from retrieval.reranker import CrossEncoderReranker
+    from retrieval.retriever import RetrievalHit
+    
+    reranker = CrossEncoderReranker()
+    sample_hits = [
+        RetrievalHit(provision=provisions[0], score=0.1),
+        RetrievalHit(provision=provisions[1], score=0.2),
+    ]
+    query = "Quyền tác giả phát sinh khi nào?"
+    reranked = reranker.rerank(query, sample_hits, top_k=2)
+    assert len(reranked) == 2
+    assert isinstance(reranked[0], RetrievalHit)
+    assert isinstance(reranked[0].score, float)
+
+
+def test_retrieve_with_rerank_integration(provisions):
+    """Kiểm tra hàm retrieve_with_rerank trả về top_k kết quả sau khi qua Reranker."""
+    from retrieval.reranker import get_reranker
+    from retrieval.retriever import retrieve_with_rerank
+    from retrieval.bm25_index import Bm25Index
+    from retrieval.embedder import HashingFallbackEmbedder
+    from retrieval.faiss_index import FaissFlatIndex
+    
+    embedder = HashingFallbackEmbedder()
+    faiss_index = FaissFlatIndex(dim=embedder.DIM)
+    vecs = embedder.encode([p.text for p in provisions])
+    pids = [p.provision_id for p in provisions]
+    faiss_index.add(vecs, pids)
+    bm25_index = Bm25Index([p.text for p in provisions], pids)
+    
+    reranker = get_reranker()
+    query = "chương trình máy tính được bảo hộ như thế nào?"
+    hits = retrieve_with_rerank(
+        query=query,
+        provisions=provisions,
+        embedder=embedder,
+        faiss_index=faiss_index,
+        bm25_index=bm25_index,
+        reranker=reranker,
+        candidate_top_k=10,
+        final_top_k=3,
+        min_dense_score=0.0,
+    )
+    assert len(hits) <= 3
+    assert all(h.provision.status == "hieu_luc" for h in hits)

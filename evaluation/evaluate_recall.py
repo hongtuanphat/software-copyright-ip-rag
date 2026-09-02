@@ -1,7 +1,11 @@
 """evaluation/evaluate_recall.py
 
 Đo lường độ chính xác của tầng truy hồi (Retrieval) trên tập dev_set.json:
-- Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 3 phương pháp: Dense (FAISS), Sparse (BM25) và Hybrid (RRF).
+- Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 4 phương pháp:
+  1. Dense (FAISS)
+  2. Sparse (BM25)
+  3. Hybrid (FAISS+BM25+RRF)
+  4. Hybrid + Semantic Reranker (Cross-Encoder)
 - Đánh giá ở cả 2 cấp độ: đúng chính xác Khoản luật (chỉ số chính) và đúng cấp Điều luật (chẩn đoán).
 - Tự động in bảng so sánh và lưu kết quả chi tiết từng câu vào recall_results.json.
 """
@@ -33,7 +37,8 @@ from ingestion.chunker import Provision
 from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
+from retrieval.reranker import get_reranker
+from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid, retrieve_with_rerank
 from evaluation.metrics import recall_at_k, hierarchical_article_recall_at_k
 
 
@@ -72,13 +77,15 @@ def evaluate_system(
     embedder: Any,
     faiss_index: FaissFlatIndex,
     bm25_index: Bm25Index,
+    reranker: Any,
     k_values: list[int] = [1, 3, 5, 10],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Chạy đo lường toàn diện trên 3 chế độ: Dense, BM25 và Hybrid."""
+    """Chạy đo lường toàn diện trên 4 chế độ: Dense, BM25, Hybrid và Hybrid + Reranker."""
     results_by_mode: dict[str, dict[str, list[float]]] = {
         "Dense (FAISS)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
         "Sparse (BM25)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
         "Hybrid (FAISS+BM25+RRF)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
+        "Hybrid + Reranker (Cross-Encoder)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
     }
 
     # Lọc các câu hỏi có nhãn ground truth (Nhóm 1, 2, 3, 4)
@@ -103,6 +110,21 @@ def evaluate_system(
         hybrid_hits = retrieve_hybrid(query_text, provisions, embedder, faiss_index, bm25_index, top_k=max(k_values))
         hybrid_pids = [h.provision.provision_id for h in hybrid_hits]
 
+        # 4. Chạy Hybrid + Reranker
+        candidate_k = getattr(config, "RERANK_CANDIDATE_POOL", 20)
+        rerank_hits = retrieve_with_rerank(
+            query=query_text,
+            provisions=provisions,
+            embedder=embedder,
+            faiss_index=faiss_index,
+            bm25_index=bm25_index,
+            reranker=reranker,
+            candidate_top_k=candidate_k,
+            final_top_k=max(k_values),
+            min_dense_score=0.0,
+        )
+        rerank_pids = [h.provision.provision_id for h in rerank_hits]
+
         query_record: dict[str, Any] = {
             "id": q_id,
             "group": q_group,
@@ -123,6 +145,11 @@ def evaluate_system(
                 **{f"recall@{k}": recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
                 **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
             },
+            "hybrid_reranker": {
+                "retrieved_ids": rerank_pids,
+                **{f"recall@{k}": recall_at_k(gold_ids, rerank_pids, k) for k in k_values},
+                **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, rerank_pids, k) for k in k_values},
+            },
         }
         detailed_results.append(query_record)
 
@@ -130,6 +157,7 @@ def evaluate_system(
             ("Dense (FAISS)", dense_pids),
             ("Sparse (BM25)", bm25_pids),
             ("Hybrid (FAISS+BM25+RRF)", hybrid_pids),
+            ("Hybrid + Reranker (Cross-Encoder)", rerank_pids),
         ]:
             for k in k_values:
                 r_k = recall_at_k(gold_ids, pids, k)
@@ -148,11 +176,11 @@ def evaluate_system(
 
 def print_summary_table(summary: dict[str, Any]) -> None:
     """In bảng so sánh chỉ số trực quan ra màn hình."""
-    print("=" * 85)
+    print("=" * 95)
     print(f"BÁO CÁO ĐO LƯỜNG ĐỘ CHÍNH XÁC TRUY HỒI (RECALL) TRÊN {summary['total_evaluated_questions']} CÂU HỎI")
-    print("=" * 85)
-    print(f"{'Phương Pháp Truy Hồi':<26} | {'Recall@1':<10} | {'Recall@3':<10} | {'Recall@5':<10} | {'Recall@10':<10} | {'Article@5':<10}")
-    print("-" * 85)
+    print("=" * 95)
+    print(f"{'Phương Pháp Truy Hồi':<36} | {'Recall@1':<10} | {'Recall@3':<10} | {'Recall@5':<10} | {'Recall@10':<10} | {'Article@5':<10}")
+    print("-" * 95)
 
     for mode_name, metrics in summary["modes"].items():
         r1 = f"{metrics.get('recall@1', 0.0)*100:.2f}%"
@@ -160,8 +188,8 @@ def print_summary_table(summary: dict[str, Any]) -> None:
         r5 = f"{metrics.get('recall@5', 0.0)*100:.2f}%"
         r10 = f"{metrics.get('recall@10', 0.0)*100:.2f}%"
         art5 = f"{metrics.get('article_recall@5', 0.0)*100:.2f}%"
-        print(f"{mode_name:<26} | {r1:<10} | {r3:<10} | {r5:<10} | {r10:<10} | {art5:<10}")
-    print("=" * 85)
+        print(f"{mode_name:<36} | {r1:<10} | {r3:<10} | {r5:<10} | {r10:<10} | {art5:<10}")
+    print("=" * 95)
 
 
 def main() -> None:
@@ -180,7 +208,10 @@ def main() -> None:
     # Khởi tạo chỉ mục BM25
     bm25_index = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
 
-    summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)
+    # Khởi tạo Semantic Reranker
+    reranker = get_reranker()
+
+    summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index, reranker)
     print_summary_table(summary)
 
     # Lưu đầy đủ kết quả chi tiết từng câu và bảng tổng kết

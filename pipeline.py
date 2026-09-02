@@ -1,7 +1,7 @@
 """pipeline.py
 
 Module đóng gói toàn bộ quy trình xử lý câu hỏi RAG:
-Nạp dữ liệu -> Nhận câu hỏi -> Tìm kiếm kết hợp (FAISS + BM25 + RRF) -> Bộ lọc từ chối -> Gọi Gemini sinh câu trả lời -> Gắn trích dẫn và cảnh báo hiệu lực.
+Nạp dữ liệu -> Nhận câu hỏi -> Tìm kiếm kết hợp (FAISS + BM25 + RRF) -> Tái xếp hạng ngữ nghĩa (Cross-Encoder Reranker) -> Bộ lọc từ chối -> Gọi Gemini sinh câu trả lời -> Gắn trích dẫn và cảnh báo hiệu lực.
 Cung cấp hàm answer_rag() để nối trực tiếp với giao diện Web Streamlit.
 """
 from __future__ import annotations
@@ -24,7 +24,8 @@ from monitoring.effective_checker import get_active_alerts
 from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.retriever import RetrievalHit, retrieve, retrieve_bm25, retrieve_hybrid
+from retrieval.reranker import get_reranker
+from retrieval.retriever import RetrievalHit, retrieve, retrieve_bm25, retrieve_hybrid, retrieve_with_rerank
 
 
 @dataclass
@@ -58,12 +59,14 @@ class RAGResponse:
 class RAGPipeline:
     """Lớp điều phối chính cho hệ thống RAG."""
 
-    def __init__(self, mode: str = config.RETRIEVAL_MODE):
+    def __init__(self, mode: str = config.RETRIEVAL_MODE, use_reranker: bool = False):
         self.mode = mode
+        self.use_reranker = use_reranker
         self.provisions: list[Provision] = []
         self.embedder: Any = None
         self.faiss_index: Optional[FaissFlatIndex] = None
         self.bm25_index: Optional[Bm25Index] = None
+        self.reranker: Any = None
         self._is_ready = False
         self._initialize()
 
@@ -97,6 +100,10 @@ class RAGPipeline:
         pids = [p.provision_id for p in self.provisions]
         self.bm25_index = Bm25Index(texts, pids)
 
+        # 4. Khởi tạo Semantic Reranker (nếu được bật)
+        if self.use_reranker:
+            self.reranker = get_reranker()
+
         self._is_ready = True
 
     def query(self, question: str, top_k: int = config.TOP_K) -> RAGResponse:
@@ -114,7 +121,19 @@ class RAGPipeline:
                 )
 
         # 1. Tìm kiếm đoạn luật liên quan theo chế độ được chọn
-        if self.mode == "hybrid" and self.bm25_index is not None and self.faiss_index is not None:
+        if self.use_reranker and self.reranker is not None and self.bm25_index is not None and self.faiss_index is not None:
+            candidate_k = getattr(config, "RERANK_CANDIDATE_POOL", 20)
+            hits = retrieve_with_rerank(
+                question,
+                self.provisions,
+                self.embedder,
+                self.faiss_index,
+                self.bm25_index,
+                self.reranker,
+                candidate_top_k=candidate_k,
+                final_top_k=top_k,
+            )
+        elif self.mode == "hybrid" and self.bm25_index is not None and self.faiss_index is not None:
             hits = retrieve_hybrid(
                 question,
                 self.provisions,
@@ -189,11 +208,11 @@ class RAGPipeline:
 _global_pipeline: Optional[RAGPipeline] = None
 
 
-def get_pipeline(mode: str = config.RETRIEVAL_MODE) -> RAGPipeline:
+def get_pipeline(mode: str = config.RETRIEVAL_MODE, use_reranker: bool = False) -> RAGPipeline:
     """Lấy hoặc khởi tạo instance pipeline dùng chung."""
     global _global_pipeline
-    if _global_pipeline is None or _global_pipeline.mode != mode:
-        _global_pipeline = RAGPipeline(mode=mode)
+    if _global_pipeline is None or _global_pipeline.mode != mode or _global_pipeline.use_reranker != use_reranker:
+        _global_pipeline = RAGPipeline(mode=mode, use_reranker=use_reranker)
     return _global_pipeline
 
 

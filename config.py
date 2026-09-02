@@ -85,3 +85,9 @@ TESTSET_GROUPS = {
     4: "ngoai pham vi nhung gan chu de",
     5: "buoc phai tu choi vi thieu can cu",
 }
+# ---------------------------------------------------------------------------
+# Cấu hình Semantic Reranker (Cross-Encoder)
+# ---------------------------------------------------------------------------
+RERANKER_MODEL_NAME = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+RERANK_CANDIDATE_POOL = 20
+RERANK_FINAL_TOP_K = 5

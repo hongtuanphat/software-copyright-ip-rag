@@ -1,9 +1,9 @@
 """
-main.py — Điểm vào CLI kiểm thử hệ thống RAG (Tuần 5: Hybrid Search).
+main.py — Điểm vào CLI kiểm thử hệ thống RAG Đa Văn Bản (Luật SHTT 67 + NĐ 17/2023 + NĐ 134/2026).
 
 Quy trình xử lý:
-    raw text -> chunker -> metadata -> embedder -> FAISS + BM25 -> retrieve_hybrid (RRF)
-    -> refusal_gate -> prompt_builder -> llm -> citation
+    raw texts (Luật + Nghị định) -> chunker -> metadata -> embedder -> FAISS + BM25
+    -> retrieve_hybrid (RRF) -> refusal_gate -> prompt_builder -> llm -> citation
 """
 from __future__ import annotations
 
@@ -13,11 +13,13 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
+import argparse
 import json
+from pathlib import Path
 import numpy as np
 
 import config
-from ingestion.chunker import parse_law_text
+from ingestion.chunker import parse_law_text, Provision
 from ingestion.metadata import attach_effective_metadata, load_law_meta
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
@@ -30,9 +32,7 @@ from generation.citation import build_citations
 from monitoring.effective_checker import get_active_alerts
 
 
-SOURCE_URL = (
-    "https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm"
-)
+AMENDED_ARTICLES_IN_ND17 = {"1", "5", "8", "22", "23", "25", "29", "38", "39", "40", "41", "43", "71", "84", "87", "88", "98", "99", "110"}
 
 # 5 Câu hỏi đại diện cho 5 Nhóm kiểm thử
 SAMPLE_QUESTIONS = [
@@ -69,28 +69,69 @@ SAMPLE_QUESTIONS = [
 ]
 
 
-def build_corpus() -> list:
-    """Nạp dữ liệu thô từ VBHN 67/VBHN-VPQH, tách chunks và gán metadata."""
-    raw_path = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
-    text = raw_path.read_text(encoding="utf-8")
-    provisions = parse_law_text(text, law_code=config.LAW_CODE, source_url=SOURCE_URL)
-    law_meta = load_law_meta(raw_path)
-    provisions = attach_effective_metadata(provisions, law_meta)
+def build_corpus(force: bool = False) -> list[Provision]:
+    """Nạp dữ liệu thô từ toàn bộ các văn bản luật và nghị định, tách chunks và gán metadata.
+
+    Nếu force=False và file chunks.jsonl đã tồn tại đầy đủ thì nạp từ cache.
+    """
+    if not force and config.CHUNKS_PATH.exists():
+        cached: list[Provision] = []
+        with config.CHUNKS_PATH.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    cached.append(Provision(**json.loads(line)))
+        if len(cached) >= 1000:
+            return cached
+
+    raw_dir = config.DATA_RAW_DIR
+    all_provisions: list[Provision] = []
+
+    docs_config = [
+        ("67-VBHN-VPQH.txt", "67/VBHN-VPQH", "https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm"),
+        ("17-2023-ND-CP.txt", "17/2023/ND-CP", "https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-17-2023-nd-cp-39279.htm"),
+        ("134-2026-ND-CP.txt", "134/2026/ND-CP", "https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-134-2026-nd-cp-469388/64378.htm")
+    ]
+
+    for filename, law_code, source_url in docs_config:
+        raw_path = raw_dir / filename
+        if not raw_path.exists():
+            continue
+        text = raw_path.read_text(encoding="utf-8")
+        provisions = parse_law_text(text, law_code=law_code, source_url=source_url)
+        law_meta = load_law_meta(raw_path)
+        provisions = attach_effective_metadata(provisions, law_meta)
+
+        # Xử lý trạng thái bị sửa đổi đối với Nghị định 17
+        if law_code == "17/2023/ND-CP":
+            for p in provisions:
+                if p.article_no in AMENDED_ARTICLES_IN_ND17:
+                    p.status = "bi_sua_doi"
+                    p.replaced_by = "134/2026/ND-CP"
+                    p.effective_to = "2026-04-09"
+                else:
+                    p.status = "hieu_luc"
+
+        all_provisions.extend(provisions)
 
     # Ghi tự động danh sách chunks mới ra data/processed/chunks.jsonl
+    config.CHUNKS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with config.CHUNKS_PATH.open("w", encoding="utf-8") as f:
-        for p in provisions:
+        for p in all_provisions:
             f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
 
-    return provisions
+    return all_provisions
 
 
-def index_corpus(provisions: list):
-    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu."""
+def index_corpus(provisions: list[Provision], output_index_path: Path | None = None, output_chunks_path: Path | None = None):
+    """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu hợp nhất."""
     embedder = get_embedder()
     texts = [p.text for p in provisions]
     vectors = embedder.encode(texts)
     dim = vectors.shape[1]
+
+    target_chunks = output_chunks_path or config.CHUNKS_PATH
+    target_index = output_index_path or config.FAISS_INDEX_PATH
 
     # Điền vector_id và embedding_model cho từng Provision
     model_name = getattr(embedder, "model_name", config.EMBEDDING_MODEL_NAME)
@@ -99,13 +140,14 @@ def index_corpus(provisions: list):
         p.embedding_model = model_name
 
     # Cập nhật thông tin vector vào file chunks.jsonl
-    with config.CHUNKS_PATH.open("w", encoding="utf-8") as f:
+    target_chunks.parent.mkdir(parents=True, exist_ok=True)
+    with target_chunks.open("w", encoding="utf-8") as f:
         for p in provisions:
             f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
 
     faiss_index = FaissFlatIndex(dim)
     faiss_index.add(np.asarray(vectors), [p.provision_id for p in provisions])
-    faiss_index.save(config.FAISS_INDEX_PATH)
+    faiss_index.save(target_index)
 
     bm25 = Bm25Index(texts, [p.provision_id for p in provisions])
     return embedder, faiss_index, bm25
@@ -131,50 +173,74 @@ def answer_question(item: dict, provisions, embedder, faiss_index, bm25_index) -
     for h in hits:
         flag = " [DISTRACTOR]" if h.provision.is_distractor else ""
         clause_tag = f" Khoản {h.provision.clause_no}" if h.provision.clause_no else ""
-        print(f"   score={h.score:.4f}  Điều {h.provision.article_no}{clause_tag}{flag}  {h.provision.title}")
+        print(f"   score={h.score:.4f}  [{h.provision.law_code}] Điều {h.provision.article_no}{clause_tag}{flag}  {h.provision.title}")
 
     decision = decide(query, hits)
     print(f"-> Refusal gate: should_refuse={decision.should_refuse} | lý do: {decision.reason}")
 
     if decision.should_refuse:
         print(">> TỪ CHỐI TRẢ LỜI (Kích hoạt Refusal Gate).")
+        print(f">> Lý do: {decision.reason}")
+        print()
         return
 
-    prompt = build_prompt(query, hits)
-    answer = generate(query, prompt, hits)
-    print(f">> CÂU TRẢ LỜI:\n{answer}")
+    # Lấy các cảnh báo hiệu lực nếu có
+    active_alerts = get_active_alerts()
+    prompt = build_prompt(
+        query=query,
+        hits=hits,
+        effective_status=config.EFFECTIVE_STATUS_VALID,
+        active_alerts=active_alerts,
+    )
+
+    print("-> Đang gọi Gemini LLM...")
+    response_text = generate(query, prompt, hits)
+    print("-> Phản hồi từ mô hình:")
+    print(response_text)
+    print()
 
     citations = build_citations(hits)
-    print("-> Trích dẫn căn cứ pháp lý:")
+    print(f"-> Căn cứ pháp lý trích dẫn ({len(citations)} điều khoản):")
     for c in citations:
-        clause_str = f" (Khoản {c['clause_no']})" if c.get("clause_no") else ""
-        print(f"   * {c['law_code']} | Điều {c['article_no']}{clause_str}: {c['title']}")
+        c_clause = c.get("clause_no")
+        c_tag = f" Khoản {c_clause}" if c_clause else ""
+        print(f"   - [{c.get('law_code')}] Điều {c.get('article_no')}{c_tag}: {c.get('title')}")
+        print(f"     URL: {c.get('source_url')}")
+    print()
 
 
-def main() -> None:
-    print("--- [1/3] Xây dựng corpus từ VBHN 67/VBHN-VPQH ---")
-    provisions = build_corpus()
-    n_in_scope = sum(1 for p in provisions if not p.is_distractor)
-    n_distractor = sum(1 for p in provisions if p.is_distractor)
-    print(f"Tổng số chunks: {len(provisions)} ({n_in_scope} trong phạm vi, {n_distractor} distractor).\n")
+def main():
+    parser = argparse.ArgumentParser(description="Chạy kiểm thử hệ thống RAG Đa Văn Bản.")
+    parser.add_argument("--force", action="store_true", help="Làm tươi và tái tạo toàn bộ CSDL và Vector Index.")
+    args = parser.parse_args()
 
-    print("--- [2/3] Khởi tạo Embedder & Cấu trúc chỉ mục (FAISS Dense & BM25 Sparse) ---")
-    embedder, faiss_index, bm25_index = index_corpus(provisions)
-    print(f"Mô hình Embedding: {getattr(embedder, 'model_name', config.EMBEDDING_MODEL_NAME)}")
-    print(f"Chỉ mục FAISS Dense: {len(faiss_index)} vectors (đã lưu tại {config.FAISS_INDEX_PATH}).")
-    print(f"Chỉ mục BM25 Sparse: {len(bm25_index)} documents.")
-    print(f"Đã cập nhật vector_id và embedding_model vào {config.CHUNKS_PATH}.")
+    print("=" * 78)
+    print("HỆ THỐNG RAG ĐA VĂN BẢN VỀ BẢN QUYỀN PHẦN MỀM & AI (Luật 67 + NĐ 17 + NĐ 134)")
+    print("=" * 78)
 
-    # Kiểm tra trạng thái giám sát hiệu lực văn bản
-    active_alerts = get_active_alerts()
-    if active_alerts:
-        print(f"Cảnh báo hiệu lực: Có {len(active_alerts)} cảnh báo đang hoạt động.\n")
+    print("\n[Bước 1] Nạp dữ liệu và kiểm tra CSDL...")
+    provisions = build_corpus(force=args.force)
+    print(f"-> Đã nạp thành công {len(provisions)} đoạn luật (Provision) từ 3 văn bản.")
+
+    print("\n[Bước 2] Xây dựng hoặc tải Chỉ mục Vector (FAISS IndexFlatIP Cosine Similarity + BM25)...")
+    if args.force or not config.FAISS_INDEX_PATH.exists():
+        print("-> Đang thực hiện làm tươi và tính toán vector nhúng...")
+        embedder, faiss_index, bm25_index = index_corpus(provisions)
+        print(f"-> Đã lưu chỉ mục vector FAISS ({len(faiss_index)} vectors) và BM25.")
     else:
-        print("Trạng thái hiệu lực văn bản: Đang có hiệu lực bình thường.\n")
+        embedder = get_embedder()
+        faiss_index = FaissFlatIndex.load(config.FAISS_INDEX_PATH)
+        texts = [p.text for p in provisions]
+        p_ids = [p.provision_id for p in provisions]
+        bm25_index = Bm25Index(texts, p_ids)
+        print(f"-> Đã nạp chỉ mục có sẵn: {len(faiss_index)} FAISS vectors, {len(bm25_index)} BM25 docs.")
 
-    print("--- [3/3] Chạy thử nghiệm các nhóm câu hỏi mẫu (Hybrid Search RRF) ---")
+    print("\n[Bước 3] Chạy thử nghiệm 5 câu hỏi kiểm thử đại diện...")
     for item in SAMPLE_QUESTIONS:
         answer_question(item, provisions, embedder, faiss_index, bm25_index)
+
+    print("=" * 78)
+    print("HOÀN THÀNH KIỂM THỬ HỆ THỐNG.")
     print("=" * 78)
 
 

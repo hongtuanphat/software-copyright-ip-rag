@@ -1,18 +1,20 @@
-"""
-ingestion/chunker.py
+"""ingestion/chunker.py
 
 Tách văn bản luật thành các khối dữ liệu (Provision) theo từng Điều/Khoản.
-Hỗ trợ tách sâu xuống cấp Khoản (Clause Chunking) ở Tuần 2.
+Hỗ trợ tách sâu xuống cấp Khoản (Clause Chunking) và hỗ trợ Đa Văn Bản (Luật + Nghị định).
+Tự động nhận diện các phân vùng DISTRACTOR và IN-SCOPE dựa trên marker tags trong file raw.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, asdict
+from pathlib import Path
 from typing import Optional
 
 ARTICLE_RE = re.compile(r"^Điều\s+(\d+[a-zà-ỹ]*)\.\s*(.+)$", re.IGNORECASE)
 CLAUSE_RE = re.compile(r"^(\d+)\.\s+(.*)$")
 DISTRACTOR_MARKER = "DISTRACTOR"
+IN_SCOPE_MARKER = "IN-SCOPE"
 
 
 @dataclass
@@ -50,7 +52,7 @@ def parse_law_text(
 
     Args:
         raw_text: Nội dung văn bản luật thô.
-        law_code: Mã văn bản hợp nhất (VD: '67/VBHN-VPQH').
+        law_code: Mã văn bản hợp nhất hoặc nghị định (VD: '67/VBHN-VPQH', '17/2023/ND-CP').
         source_url: URL nguồn dữ liệu công khai.
         topic_in_scope: Chủ đề mặc định cho các Điều trong phạm vi.
 
@@ -68,16 +70,26 @@ def parse_law_text(
     def process_article(art_no: str, art_title: str, body_lines: list[str], is_dist: bool):
         if not art_no or not body_lines:
             return
-        
+
         topic = _guess_topic(art_title) if is_dist else topic_in_scope
         sanitized_code = law_code.replace("/", "-")
-        
+
+        # Cắt bỏ phần phụ lục hoặc chữ ký nếu ở điều cuối
+        cleaned_body = []
+        for line in body_lines:
+            if re.search(r"^(?:TM\.\s*CHÍNH PHỦ|Phụ lục\s+[IVXLCDM\d]+)", line.strip(), re.IGNORECASE):
+                break
+            cleaned_body.append(line)
+
+        if not cleaned_body:
+            cleaned_body = body_lines
+
         # Kiểm tra xem Điều có phân tách các Khoản bằng '1.', '2.', '3.' hay không
         clause_blocks: list[tuple[Optional[str], list[str]]] = []
         curr_clause_no: Optional[str] = None
         curr_clause_lines: list[str] = []
 
-        for b_line in body_lines:
+        for b_line in cleaned_body:
             c_match = CLAUSE_RE.match(b_line)
             if c_match:
                 if curr_clause_lines or curr_clause_no is not None:
@@ -86,7 +98,7 @@ def parse_law_text(
                 curr_clause_lines = [b_line]
             else:
                 curr_clause_lines.append(b_line)
-        
+
         if curr_clause_lines or curr_clause_no is not None:
             clause_blocks.append((curr_clause_no, curr_clause_lines))
 
@@ -142,6 +154,10 @@ def parse_law_text(
         stripped = line.strip()
         if not stripped:
             continue
+        if IN_SCOPE_MARKER in stripped:
+            flush()
+            in_distractor_zone = False
+            continue
         if DISTRACTOR_MARKER in stripped:
             flush()
             in_distractor_zone = True
@@ -159,41 +175,24 @@ def parse_law_text(
 
 
 def _guess_topic(title: str) -> str:
-    """Phân loại chủ đề distractor dựa trên tiêu đề điều luật.
-
-    Các nhóm distractor phấn đấu xuất hiện trong văn bản SHTT nhưng nàm ngoài phạm vi trả lời:
-    - Quyền liên quan (người biểu diễn, bản ghi âm, chương trình phát sóng)
-    - Sáng chế (thuật toán, giải pháp kỹ thuật)
-    - Kiểu dáng công nghiệp (giao diện UI/UX bên ngoài)
-    - Nhãn hiệu / Tên thương mại (logo, thương hiệu app)
-    - Bí mật kinh doanh
-    """
+    """Phân loại chủ đề distractor dựa trên tiêu đề điều luật."""
     title_low = title.lower()
     if "sáng chế" in title_low:
         return "sang_che"
     if "kiểu dáng" in title_low:
         return "kieu_dang_cong_nghiep"
-    if "nhãn hiệu" in title_low or "tên thương mại" in title_low:
+    if "thiết kế bố trí" in title_low or "mạch tích hợp" in title_low:
+        return "thiet_ke_bo_tri"
+    if "nhãn hiệu" in title_low:
         return "nhan_hieu"
-    if "biểu diễn" in title_low or "bản ghi" in title_low or "quyền liên quan" in title_low:
+    if "chỉ dẫn địa lý" in title_low:
+        return "chi_dan_dia_ly"
+    if "giống cây trồng" in title_low:
+        return "giong_cay_trong"
+    if "quyền liên quan" in title_low or "biểu diễn" in title_low or "phát sóng" in title_low or "bản ghi" in title_low:
         return "quyen_lien_quan"
-    if "bí mật kinh doanh" in title_low:
-        return "bi_mat_kinh_doanh"
-    return "distractor_khac"
-
-
-if __name__ == "__main__":
-    import config
-
-    raw_path = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
-    text = raw_path.read_text(encoding="utf-8")
-    result = parse_law_text(
-        text,
-        law_code=config.LAW_CODE,
-        source_url="https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm",
-    )
-    print(f"Đã tách được {len(result)} provisions (cấp Khoản/Điều):")
-    for p in result:
-        flag = "[DISTRACTOR]" if p.is_distractor else ""
-        c_str = f" Khoản {p.clause_no}" if p.clause_no else ""
-        print(f"  - Điều {p.article_no}{c_str}: {p.title} ({p.provision_id}) {flag}")
+    if "hải quan" in title_low or "xuất khẩu" in title_low or "nhập khẩu" in title_low:
+        return "hai_quan"
+    if "giám định" in title_low:
+        return "giam_dinh"
+    return "khac"
