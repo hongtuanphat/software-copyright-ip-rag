@@ -416,7 +416,7 @@ def test_cross_encoder_reranker(provisions):
 def test_retrieve_with_rerank_integration(provisions):
     """Kiểm tra hàm retrieve_with_rerank trả về top_k kết quả sau khi qua Reranker."""
     from retrieval.reranker import get_reranker
-    from retrieval.retriever import retrieve_with_rerank
+    from retrieval.reranker import retrieve_with_rerank
     from retrieval.bm25_index import Bm25Index
     from retrieval.embedder import HashingFallbackEmbedder
     from retrieval.faiss_index import FaissFlatIndex

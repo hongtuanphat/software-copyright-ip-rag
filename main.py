@@ -126,7 +126,10 @@ def build_corpus(force: bool = False) -> list[Provision]:
 def index_corpus(provisions: list[Provision], output_index_path: Path | None = None, output_chunks_path: Path | None = None):
     """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu hợp nhất."""
     embedder = get_embedder()
-    texts = [p.text for p in provisions]
+    texts = [
+        f"[{p.law_code}] Điều {p.article_no}. {p.title}\n{f'Khoản {p.clause_no}. ' if p.clause_no else ''}{p.text}"
+        for p in provisions
+    ]
     vectors = embedder.encode(texts)
     dim = vectors.shape[1]
 

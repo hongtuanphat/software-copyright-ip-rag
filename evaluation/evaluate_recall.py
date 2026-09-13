@@ -1,7 +1,7 @@
 """evaluation/evaluate_recall.py
 
 Đo lường độ chính xác của tầng truy hồi (Retrieval) trên tập dev_set.json:
-- Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 4 phương pháp:
+- Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 3 phương pháp nòng cốt:
   1. Dense (FAISS)
   2. Sparse (BM25)
   3. Hybrid (FAISS+BM25+RRF)
@@ -37,8 +37,7 @@ from ingestion.chunker import Provision
 from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.reranker import get_reranker
-from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid, retrieve_with_rerank
+from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
 from evaluation.metrics import recall_at_k, hierarchical_article_recall_at_k
 
 
@@ -77,15 +76,13 @@ def evaluate_system(
     embedder: Any,
     faiss_index: FaissFlatIndex,
     bm25_index: Bm25Index,
-    reranker: Any,
     k_values: list[int] = [1, 3, 5, 10],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Chạy đo lường toàn diện trên 4 chế độ: Dense, BM25, Hybrid và Hybrid + Reranker."""
+    """Chạy đo lường toàn diện trên 3 chế độ: Dense, BM25, Hybrid."""
     results_by_mode: dict[str, dict[str, list[float]]] = {
         "Dense (FAISS)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
         "Sparse (BM25)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
         "Hybrid (FAISS+BM25+RRF)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
-        "Hybrid + Reranker (Cross-Encoder)": {f"recall@{k}": [] for k in k_values} | {f"article_recall@{k}": [] for k in k_values},
     }
 
     # Lọc các câu hỏi có nhãn ground truth (Nhóm 1, 2, 3, 4)
@@ -110,20 +107,7 @@ def evaluate_system(
         hybrid_hits = retrieve_hybrid(query_text, provisions, embedder, faiss_index, bm25_index, top_k=max(k_values))
         hybrid_pids = [h.provision.provision_id for h in hybrid_hits]
 
-        # 4. Chạy Hybrid + Reranker
-        candidate_k = getattr(config, "RERANK_CANDIDATE_POOL", 20)
-        rerank_hits = retrieve_with_rerank(
-            query=query_text,
-            provisions=provisions,
-            embedder=embedder,
-            faiss_index=faiss_index,
-            bm25_index=bm25_index,
-            reranker=reranker,
-            candidate_top_k=candidate_k,
-            final_top_k=max(k_values),
-            min_dense_score=0.0,
-        )
-        rerank_pids = [h.provision.provision_id for h in rerank_hits]
+
 
         query_record: dict[str, Any] = {
             "id": q_id,
@@ -145,11 +129,7 @@ def evaluate_system(
                 **{f"recall@{k}": recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
                 **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, hybrid_pids, k) for k in k_values},
             },
-            "hybrid_reranker": {
-                "retrieved_ids": rerank_pids,
-                **{f"recall@{k}": recall_at_k(gold_ids, rerank_pids, k) for k in k_values},
-                **{f"article_recall@{k}": hierarchical_article_recall_at_k(gold_ids, rerank_pids, k) for k in k_values},
-            },
+
         }
         detailed_results.append(query_record)
 
@@ -157,7 +137,6 @@ def evaluate_system(
             ("Dense (FAISS)", dense_pids),
             ("Sparse (BM25)", bm25_pids),
             ("Hybrid (FAISS+BM25+RRF)", hybrid_pids),
-            ("Hybrid + Reranker (Cross-Encoder)", rerank_pids),
         ]:
             for k in k_values:
                 r_k = recall_at_k(gold_ids, pids, k)
@@ -205,13 +184,14 @@ def main() -> None:
     embedder = get_embedder()
     faiss_index = FaissFlatIndex.load(faiss_index_path)
 
-    # Khởi tạo chỉ mục BM25
-    bm25_index = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
+    # Khởi tạo chỉ mục BM25 với Contextual Chunk Enrichment
+    enriched_texts = [
+        f"[{p.law_code}] Điều {p.article_no}. {p.title}\n{f'Khoản {p.clause_no}. ' if p.clause_no else ''}{p.text}"
+        for p in provisions
+    ]
+    bm25_index = Bm25Index(enriched_texts, [p.provision_id for p in provisions])
 
-    # Khởi tạo Semantic Reranker
-    reranker = get_reranker()
-
-    summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index, reranker)
+    summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)
     print_summary_table(summary)
 
     # Lưu đầy đủ kết quả chi tiết từng câu và bảng tổng kết

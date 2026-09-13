@@ -28,7 +28,8 @@ def hierarchical_article_recall_at_k(actual_provisions: list[str], retrieved_pro
         return 0.0
 
     def to_article_id(pid: str) -> str:
-        match = re.search(r"(Art\d+)", pid)
+        # Hỗ trợ đa văn bản (67-VBHN-VPQH, 17-2023-ND-CP, 134-2026-ND-CP) và điều có hậu tố (Art12a)
+        match = re.search(r"^(.+?_Art\d+[a-zA-Z]?)", pid)
         return match.group(1) if match else pid
 
     gold_articles = {to_article_id(gid) for gid in actual_provisions}

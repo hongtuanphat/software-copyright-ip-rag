@@ -4,7 +4,6 @@ Các hàm tìm kiếm văn bản pháp luật:
 - Tìm kiếm ngữ nghĩa bằng vector (FAISS Index).
 - Tìm kiếm từ khóa chính xác (BM25Okapi).
 - Tìm kiếm kết hợp (Hybrid Search) dùng thuật toán RRF.
-- Tái xếp hạng ngữ nghĩa chuyên sâu bằng Semantic Reranker (Cross-Encoder).
 - Lọc bỏ các điều khoản đã hết hiệu lực.
 """
 from __future__ import annotations
@@ -149,37 +148,7 @@ def retrieve_hybrid(
     return hits
 
 
-def retrieve_with_rerank(
-    query: str,
-    provisions: list[Provision],
-    embedder: Embedder,
-    faiss_index: FaissFlatIndex,
-    bm25_index: Bm25Index,
-    reranker: Any,
-    candidate_top_k: int = config.RERANK_CANDIDATE_POOL,
-    final_top_k: int = config.RERANK_FINAL_TOP_K,
-    filter_status: bool = True,
-    min_dense_score: float = config.MIN_SCORE_TIN_CAY,
-) -> list[RetrievalHit]:
-    """Tìm kiếm 2 tầng: Hybrid Retrieval lấy Candidate Pool (Top-20) -> Cross-Encoder Rerank lấy Top-5."""
-    # Bước 1: Quét nhanh Candidate Pool bằng Hybrid Search RRF
-    candidates = retrieve_hybrid(
-        query=query,
-        provisions=provisions,
-        embedder=embedder,
-        faiss_index=faiss_index,
-        bm25_index=bm25_index,
-        top_k=candidate_top_k,
-        candidate_pool_size=candidate_top_k,
-        filter_status=filter_status,
-        min_dense_score=min_dense_score,
-    )
-    if not candidates:
-        return []
 
-    # Bước 2: Dùng Cross-Encoder chấm điểm chéo sâu và lấy top_k chính xác nhất
-    reranked_hits = reranker.rerank(query=query, hits=candidates, top_k=final_top_k)
-    return reranked_hits
 
 
 def evaluate_retriever_recall(

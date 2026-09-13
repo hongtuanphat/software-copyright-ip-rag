@@ -54,11 +54,11 @@ TOP_K = 5
 MAX_SEQ_LENGTH = 256
 EMBEDDING_DIM = 768
 RETRIEVAL_MODE = "hybrid"      # Chế độ truy hồi mặc định: "hybrid", "dense", hoặc "bm25"
-RRF_K = 60                     # Hằng số chuẩn cho thuật toán Reciprocal Rank Fusion
-CANDIDATE_POOL_SIZE = 20       # Số lượng ứng viên lấy từ mỗi nhánh trước khi hợp nhất RRF
+RRF_K = 20                     # Hằng số chuẩn cho thuật toán Reciprocal Rank Fusion (tối ưu độ dốc điểm cho top đầu)
+CANDIDATE_POOL_SIZE = 50       # Số lượng ứng viên lấy từ mỗi nhánh trước khi hợp nhất RRF
 
 # Ngưỡng lọc và cổng từ chối (Refusal Gate)
-MIN_SCORE_TIN_CAY = 0.35      # Điểm tương đồng ngữ nghĩa tối thiểu (Cosine Similarity) để xem kết quả là đáng tin
+MIN_SCORE_TIN_CAY = 0.22      # Điểm tương đồng ngữ nghĩa tối thiểu (Cosine Similarity) để xem kết quả là đáng tin
 MAX_DISTRACTOR_RATIO = 0.6    # Tỷ lệ tối đa các đoạn distractor trong top-k
 EFFECTIVE_STATUS_VALID = "hieu_luc"
 REFUSAL_THRESHOLD = 0.6
@@ -85,9 +85,3 @@ TESTSET_GROUPS = {
     4: "ngoai pham vi nhung gan chu de",
     5: "buoc phai tu choi vi thieu can cu",
 }
-# ---------------------------------------------------------------------------
-# Cấu hình Semantic Reranker (Cross-Encoder)
-# ---------------------------------------------------------------------------
-RERANKER_MODEL_NAME = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
-RERANK_CANDIDATE_POOL = 20
-RERANK_FINAL_TOP_K = 5
