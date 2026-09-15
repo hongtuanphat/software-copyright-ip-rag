@@ -496,8 +496,6 @@ k) Thiết lập cơ cấu tổ chức bộ máy của tổ chức quản lý t�
 Sau khi nhận bàn giao, cơ quan nhà nước có thẩm quyền tiếp tục thông báo tìm kiếm trong thời hạn năm năm. Kết thúc thời hạn này, nếu cơ quan nhà nước có thẩm quyền vẫn không thể tìm thấy hoặc không liên lạc được với tác giả, đồng tác giả, chủ sở hữu quyền tác giả, chủ sở hữu quyền liên quan, đồng chủ sở hữu quyền tác giả, đồng chủ sở hữu quyền liên quan, người có quyền và nghĩa vụ liên quan theo quy định của pháp luật thì khoản tiền này được sử dụng vào các hoạt động khuyến khích sáng tạo, tuyên truyền và đẩy mạnh thực thi bảo hộ quyền tác giả, quyền liên quan. Trong các thời hạn nêu trên, khi tìm thấy hoặc liên lạc được với tác giả, đồng tác giả, chủ sở hữu quyền tác giả, chủ sở hữu quyền liên quan, đồng chủ sở hữu quyền tác giả, đồng chủ sở hữu quyền liên quan, người có quyền và nghĩa vụ liên quan theo quy định của pháp luật thì khoản tiền này sau khi trừ chi phí quản lý, tìm kiếm được chi trả cho những người nêu trên theo quy định của pháp luật.
 6. Chính phủ quy định chi tiết Điều này.
 
-DISTRACTOR
-
 Điều 57. Tổ chức dịch vụ đại diện quyền tác giả, quyền liên quan 
 1. Tổ chức dịch vụ đại diện quyền tác giả, quyền liên quan được thành lập và hoạt động theo quy định của pháp luật.
 2. Tổ chức dịch vụ đại diện quyền tác giả, quyền liên quan thực hiện các hoạt động sau đây theo yêu cầu của tác giả, chủ sở hữu quyền tác giả, chủ sở hữu quyền liên quan:
@@ -505,6 +503,7 @@ a) Tư vấn những vấn đề có liên quan đến quy định của pháp l
 b) Đại diện cho tác giả, chủ sở hữu quyền tác giả, chủ sở hữu quyền liên quan tiến hành thủ tục nộp đơn đăng ký quyền tác giả, quyền liên quan theo uỷ quyền;
 c) Tham gia các quan hệ pháp luật khác về quyền tác giả, quyền liên quan, bảo vệ quyền và lợi ích hợp pháp của tác giả, chủ sở hữu quyền tác giả, chủ sở hữu quyền liên quan theo uỷ quyền.
 3. Chính phủ quy định chi tiết loại hình và điều kiện hoạt động của tổ chức dịch vụ đại diện quyền tác giả, quyền liên quan.
+DISTRACTOR
 Phần thứ ba
 QUYỀN SỞ HỮU CÔNG NGHIỆP 
 Chương VII
@@ -1511,6 +1510,10 @@ d) Người được chuyển giao quyền sử dụng phải đền bù thoả 
 Chủ bằng bảo hộ bị bắt buộc phải chuyển giao quyền sử dụng giống cây trồng có các quyền sau đây:
 1. Nhận đền bù tương ứng với giá trị kinh tế của quyền sử dụng đó hoặc tương đương với giá chuyển giao quyền sử dụng theo hợp đồng có phạm vi và thời hạn tương ứng;
 2. Yêu cầu cơ quan quản lý nhà nước về quyền đối với giống cây trồng sửa đổi, đình chỉ hiệu lực, huỷ bỏ hiệu lực của việc chuyển giao bắt buộc quyền sử dụng khi điều kiện dẫn đến việc chuyển giao đó đã chấm dứt và việc sửa đổi, huỷ bỏ, đình chỉ hiệu lực đó không gây thiệt hại cho người được chuyển giao quyền sử dụng bắt buộc.
+IN-SCOPE
+
+IN-SCOPE
+
 Phần thứ năm
 BẢO VỆ QUYỀN SỞ HỮU TRÍ TUỆ
 Chương XVI
