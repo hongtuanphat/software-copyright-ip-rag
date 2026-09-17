@@ -54,8 +54,8 @@ TOP_K = 5
 MAX_SEQ_LENGTH = 256
 EMBEDDING_DIM = 768
 RETRIEVAL_MODE = "hybrid"      # Chế độ truy hồi mặc định: "hybrid", "dense", hoặc "bm25"
-RRF_K = 20                     # Hằng số chuẩn cho thuật toán Reciprocal Rank Fusion (tối ưu độ dốc điểm cho top đầu)
-CANDIDATE_POOL_SIZE = 50       # Số lượng ứng viên lấy từ mỗi nhánh trước khi hợp nhất RRF
+RRF_K = 15                     # Hằng số chuẩn cho thuật toán Reciprocal Rank Fusion (tối ưu độ dốc điểm cho top đầu)
+CANDIDATE_POOL_SIZE = 100       # Số lượng ứng viên lấy từ mỗi nhánh trước khi hợp nhất RRF
 
 # Ngưỡng lọc và cổng từ chối (Refusal Gate)
 MIN_SCORE_TIN_CAY = 0.22      # Điểm tương đồng ngữ nghĩa tối thiểu (Cosine Similarity) để xem kết quả là đáng tin
