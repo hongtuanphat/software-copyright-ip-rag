@@ -196,3 +196,29 @@ def _guess_topic(title: str) -> str:
     if "giám định" in title_low:
         return "giam_dinh"
     return "khac"
+
+
+def load_provisions(chunks_path: Path) -> list[Provision]:
+    """Đọc danh sách Provision từ file chunks.jsonl.
+
+    Args:
+        chunks_path: Đường dẫn tới file chunks.jsonl.
+
+    Returns:
+        list[Provision]: Danh sách các đoạn luật đã parse.
+
+    Raises:
+        FileNotFoundError: Nếu file chunks không tồn tại.
+    """
+    import json
+
+    if not chunks_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy file chunks tại: {chunks_path}")
+
+    provisions: list[Provision] = []
+    with open(chunks_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                provisions.append(Provision(**json.loads(line)))
+    return provisions

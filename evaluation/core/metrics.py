@@ -28,7 +28,6 @@ def hierarchical_article_recall_at_k(actual_provisions: list[str], retrieved_pro
         return 0.0
 
     def to_article_id(pid: str) -> str:
-        # Hỗ trợ đa văn bản (67-VBHN-VPQH, 17-2023-ND-CP, 134-2026-ND-CP) và điều có hậu tố (Art12a)
         match = re.search(r"^(.+?_Art\d+[a-zA-Z]?)", pid)
         return match.group(1) if match else pid
 
@@ -47,23 +46,6 @@ class RefusalConfusionMatrix:
     false_accept: int = 0   # Chấp nhận nhầm câu hỏi ngoài phạm vi (False Negative)
     true_accept: int = 0    # Trả lời đúng câu hỏi trong phạm vi (True Negative)
     false_refusal: int = 0  # Từ chối nhầm câu hỏi trong phạm vi (False Positive)
-
-    # Các alias tương thích
-    @property
-    def true_positive(self) -> int:
-        return self.true_refusal
-
-    @property
-    def false_negative(self) -> int:
-        return self.false_accept
-
-    @property
-    def true_negative(self) -> int:
-        return self.true_accept
-
-    @property
-    def false_positive(self) -> int:
-        return self.false_refusal
 
     @property
     def total(self) -> int:
@@ -111,17 +93,6 @@ class RefusalConfusionMatrix:
             "far": round(self.far * 100, 2),
         }
 
-    def format_markdown_table(self) -> str:
-        """Xuất bảng kết quả dưới dạng bảng Markdown."""
-        lines = [
-            "| Chỉ số | Giá trị | Ý nghĩa |",
-            "| :--- | :---: | :--- |",
-            f"| **True Refusal Rate (TRR)** | **{self.trr * 100:.2f}%** | Tỷ lệ từ chối đúng câu hỏi ngoài phạm vi |",
-            f"| **False Refusal Rate (FRR)** | **{self.frr * 100:.2f}%** | Tỷ lệ từ chối nhầm câu hỏi hợp lệ |",
-            f"| **False Acceptance Rate (FAR)** | **{self.far * 100:.2f}%** | Tỷ lệ chấp nhận nhầm câu hỏi ngoài phạm vi |",
-        ]
-        return "\n".join(lines)
-
 
 def build_confusion_matrix(
     gold: Sequence[bool] | list[dict[str, Any]],
@@ -144,7 +115,7 @@ def build_confusion_matrix(
         return cm
 
     # Trường hợp truyền danh sách dict kết quả đánh giá
-    for item in gold:  # type: ignore[union-attr]
+    for item in gold: 
         if isinstance(item, dict):
             is_out = bool(item.get("is_out_of_scope", False))
             refused = bool(item.get("refused", item.get("should_refuse", False)))
@@ -158,3 +129,69 @@ def build_confusion_matrix(
                 cm.false_refusal += 1
 
     return cm
+
+
+def extract_citations_from_text(text: str) -> set[str]:
+    """Tìm tất cả các ID định dạng Art... trong văn bản."""
+    if not text:
+        return set()
+    matches = re.findall(r"Art\d+(?:_[a-zA-Z0-9_]+)?", text)
+    return set(matches)
+
+
+def extract_article_level(citations: set[str]) -> set[str]:
+    """Chuyển đổi danh sách ID thành cấp độ Điều luật (Article) để chẩn đoán."""
+    articles = set()
+    for c in citations:
+        m = re.search(r"^(.+?_Art\d+[a-zA-Z]?)", c)
+        if m:
+            articles.add(m.group(1))
+        else:
+            articles.add(c)
+    return articles
+
+
+@dataclass
+class CitationMetricsReport:
+    """Bảng thống kê đánh giá chỉ số Citation Exact Match (CEM)."""
+    eval_records: int = 0
+    exact_match_count: int = 0
+    total_precision: float = 0.0
+    total_recall: float = 0.0
+
+    # Cấp độ Article (Điều)
+    article_exact_match_count: int = 0
+    article_total_precision: float = 0.0
+    article_total_recall: float = 0.0
+
+    def add_record(self, gold_ids: set[str], pred_ids: set[str], gold_art_ids: set[str], pred_art_ids: set[str]) -> None:
+        self.eval_records += 1
+
+        # Cấp độ Exact ID
+        if pred_ids == gold_ids:
+            self.exact_match_count += 1
+            
+        intersection = gold_ids.intersection(pred_ids)
+        self.total_precision += len(intersection) / len(pred_ids) if pred_ids else 0.0
+        self.total_recall += len(intersection) / len(gold_ids) if gold_ids else 0.0
+
+        # Cấp độ Article
+        if pred_art_ids == gold_art_ids:
+            self.article_exact_match_count += 1
+            
+        intersection_art = gold_art_ids.intersection(pred_art_ids)
+        self.article_total_precision += len(intersection_art) / len(pred_art_ids) if pred_art_ids else 0.0
+        self.article_total_recall += len(intersection_art) / len(gold_art_ids) if gold_art_ids else 0.0
+
+    def to_dict(self) -> dict[str, float | int]:
+        if self.eval_records == 0:
+            return {}
+        return {
+            "eval_records": self.eval_records,
+            "exact_match_rate": round((self.exact_match_count / self.eval_records) * 100, 2),
+            "citation_precision": round((self.total_precision / self.eval_records) * 100, 2),
+            "citation_recall": round((self.total_recall / self.eval_records) * 100, 2),
+            "article_exact_match_rate": round((self.article_exact_match_count / self.eval_records) * 100, 2),
+            "article_citation_precision": round((self.article_total_precision / self.eval_records) * 100, 2),
+            "article_citation_recall": round((self.article_total_recall / self.eval_records) * 100, 2),
+        }

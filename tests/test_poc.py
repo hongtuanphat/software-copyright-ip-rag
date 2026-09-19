@@ -20,7 +20,7 @@ from retrieval.faiss_index import FaissFlatIndex
 from retrieval.retriever import retrieve, retrieve_bm25
 from generation.refusal_gate import decide
 from generation.citation import build_citations
-from evaluation.metrics import build_confusion_matrix, recall_at_k
+from evaluation.core.metrics import build_confusion_matrix, recall_at_k
 
 
 RAW_PATH = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
@@ -192,24 +192,27 @@ def test_bm25_index_search(provisions):
     assert "Art22" in top_pid
 
 
-def test_evaluate_retriever_recall(provisions, tmp_path):
-    from retrieval.retriever import evaluate_retriever_recall
+def test_evaluate_system(provisions, tmp_path):
+    from evaluation.scripts.run_recall import evaluate_system
+    from retrieval.retriever import Bm25Index
     from main import index_corpus
 
     tmp_chunks = tmp_path / "chunks.jsonl"
     tmp_index = tmp_path / "faiss.index"
     embedder, faiss_idx, _ = index_corpus(provisions, output_index_path=tmp_index, output_chunks_path=tmp_chunks)
+    bm25_idx = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
     eval_set = [
         {
             "question": "Quyền tác giả đối với chương trình máy tính",
-            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+            "gold_ids": ["67-VBHN-VPQH_Art22_Kh1"],
         },
         {
             "question": "tạo bản sao dự phòng chương trình máy tính",
-            "gold_provision_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+            "gold_ids": ["67-VBHN-VPQH_Art22_Kh1"],
         },
     ]
-    recall = evaluate_retriever_recall(eval_set, provisions, embedder, faiss_idx, k=5)
+    summary, _ = evaluate_system(eval_set, provisions, embedder, faiss_idx, bm25_idx, k_values=[5])
+    recall = summary["modes"]["Hybrid (FAISS+BM25+RRF)"]["recall@5"]
     assert 0.0 <= recall <= 1.0
     assert recall > 0.0
 
