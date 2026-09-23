@@ -192,7 +192,6 @@ def answer_question(item: dict, provisions, embedder, faiss_index, bm25_index) -
     prompt = build_prompt(
         query=query,
         hits=hits,
-        effective_status=config.EFFECTIVE_STATUS_VALID,
         active_alerts=active_alerts,
     )
 

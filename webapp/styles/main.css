@@ -14,6 +14,15 @@ html, body, [class*="stApp"] {
     border-radius: 8px;
     font-weight: 500;
     transition: all 0.2s ease;
+    height: auto !important;
+    min-height: 2.5rem;
+}
+
+.stButton > button p {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
 }
 
 /* Primary Button (Sidebar "Đoạn chat mới") */

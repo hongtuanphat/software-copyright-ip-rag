@@ -9,7 +9,7 @@ def render_sidebar() -> None:
         st.session_state["messages"] = []
         st.session_state["selected_matter"] = "Vụ mới"
 
-    st.sidebar.markdown("<div style='font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#64748b; margin: 1.4rem 0 0.8rem 0; font-weight: 600;'>GẦN ĐÂY</div>", unsafe_allow_html=True)
+    st.sidebar.caption("**GẦN ĐÂY**")
     matters = st.session_state.get("recent_matters", [])
 
     for matter in matters:

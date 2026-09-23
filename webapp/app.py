@@ -15,17 +15,9 @@ from webapp.components.chat import render_chat_messages, handle_chat_interaction
 from webapp.components.sidebar import render_sidebar
 from webapp.components.welcome import render_welcome
 
-_GOOGLE_FONTS_HTML = (
-    "<link rel='preconnect' href='https://fonts.googleapis.com'>"
-    "<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>"
-    "<link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'"
-    " rel='stylesheet'>"
-)
-
 
 def load_css() -> None:
-    """Tải font và CSS tùy chỉnh. Chỉ được gọi 1 lần mỗi execution."""
-    st.markdown(_GOOGLE_FONTS_HTML, unsafe_allow_html=True)
+    """Tải CSS tùy chỉnh."""
     css_path = Path(__file__).resolve().parent / "styles" / "main.css"
     if css_path.exists():
         css = css_path.read_text(encoding="utf-8")
@@ -48,34 +40,52 @@ def initialize_session() -> None:
 def run_app() -> None:
     icon_path = str(Path(__file__).resolve().parent / "assets" / "icons" / "copyright.svg")
     st.set_page_config(
-        page_title="Lexi",
+        page_title="IP LawBot",
         page_icon=icon_path,
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    load_css()           # 1 lần inject CSS + font
+    load_css()           # 1 lần inject CSS
     initialize_session() # 1 lần khởi tạo state (no-op nếu state đã có)
     render_sidebar()     # render sidebar, no side effects ngoài button click
 
+    is_processing = st.session_state.get("is_processing", False)
+
+    # 1. Hướng input từ user (từ chat_input hoặc suggestion button)
+    prompt = st.chat_input("Đặt câu hỏi nghiên cứu pháp lý...", disabled=is_processing)
+    if "pending_prompt" in st.session_state:
+        prompt = st.session_state.pop("pending_prompt")
+
+    # Bắt đầu luồng xử lý câu hỏi mới
+    if prompt and not is_processing:
+        st.session_state["processing_prompt"] = prompt
+        st.session_state["is_processing"] = True
+        st.rerun()
+
     has_messages = bool(st.session_state.get("messages"))
-    has_pending  = "pending_prompt" in st.session_state
 
-    if has_messages or has_pending:
-        # has_pending=True + messages rỗng: render_chat_messages() không render gì
-        # nhưng Welcome KHÔNG hiển thị — tránh flash trước khi handle xử lý prompt
-        render_chat_messages()
+    # 2. Không render Welcome nếu đang có interaction mới hoặc đang xử lý
+    welcome_placeholder = st.empty()
+    if not has_messages and not is_processing:
+        with welcome_placeholder.container():
+            render_welcome()
     else:
-        render_welcome()
+        welcome_placeholder.empty()
+        if has_messages or is_processing:
+            render_chat_messages()
 
-    # Nơi DUY NHẤT xử lý event, state mutation, delay và rerun
-    handle_chat_interaction()
+    # 3. Xử lý interaction mới nếu có
+    if is_processing and "processing_prompt" in st.session_state:
+        p = st.session_state.pop("processing_prompt")
+        handle_chat_interaction(p)
+        st.session_state["is_processing"] = False
+        st.rerun()
 
     st.markdown(
-        '<div class="disclaimer-footer">Lexi là AI và có thể mắc sai sót. Xin vui lòng kiểm tra lại.</div>',
+        '<div class="disclaimer-footer">IP LawBot là AI và có thể mắc sai sót. Xin vui lòng kiểm tra lại.</div>',
         unsafe_allow_html=True,
     )
-
 
 if __name__ == "__main__":
     run_app()
