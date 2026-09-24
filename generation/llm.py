@@ -17,7 +17,8 @@ from generation.prompt_builder import SYSTEM_INSTRUCTION
 
 def get_api_key() -> Optional[str]:
     """Lấy API key từ biến môi trường hệ thống hoặc file .env."""
-    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    key = os.environ.get("GEMINI_API_KEY")
+    return key if key else None
 
 
 def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> str:
@@ -29,7 +30,7 @@ def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> str:
         except Exception as e:  # noqa: BLE001
             print(f"[LLM] Không gọi được Gemini API ({e}), chuyển sang trích dẫn nguyên văn.")
     else:
-        print("[LLM] Chưa có GEMINI_API_KEY / GOOGLE_API_KEY — tạm thời dùng trích xuất nguyên văn.")
+        print("[LLM] Chưa có GEMINI_API_KEY — tạm thời dùng trích xuất nguyên văn.")
 
     return _extractive_fallback(query, hits)
 
