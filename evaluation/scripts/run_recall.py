@@ -73,7 +73,7 @@ def evaluate_system(
     eval_questions = []
     excluded_questions = []
     for q in questions:
-        if q.get("expected_behavior") == "answer":
+        if q.get("expected_behavior", "answer") == "answer":
             eval_questions.append(q)
         else:
             excluded_questions.append(q)

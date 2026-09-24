@@ -205,10 +205,12 @@ def test_evaluate_system(provisions, tmp_path):
         {
             "question": "Quyền tác giả đối với chương trình máy tính",
             "gold_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+            "expected_behavior": "answer",
         },
         {
             "question": "tạo bản sao dự phòng chương trình máy tính",
             "gold_ids": ["67-VBHN-VPQH_Art22_Kh1"],
+            "expected_behavior": "answer",
         },
     ]
     summary, _ = evaluate_system(eval_set, provisions, embedder, faiss_idx, bm25_idx, k_values=[5])
