@@ -79,7 +79,7 @@ def run_evaluation_experiment(
     dataset_path: Path | None = None,
     output_path: Path | None = None,
     limit: int | None = None,
-    delay_seconds: float = 10.0,
+    delay_seconds: float = 30.0,
 ) -> None:
     """
     Chạy thử nghiệm trên tập dữ liệu và lưu kết quả.

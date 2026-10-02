@@ -188,7 +188,7 @@ class RAGPipeline:
 
         # 3. Tạo lời nhắc (prompt) và gọi mô hình sinh câu trả lời (định dạng JSON)
         prompt = build_prompt(question, hits, active_alerts=active_alerts)
-        llm_response = generate(question, prompt, hits)
+        llm_response = generate(prompt)
         
         decision_str = str(llm_response.get("decision", "")).strip().upper()
         reason_str = str(llm_response.get("reason", "")).strip()

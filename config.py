@@ -40,7 +40,7 @@ GEMINI_RETRY_BASE_SECONDS = 1.0
 LAW_CODE = "67/VBHN-VPQH"
 
 # Tham số truy hồi văn bản
-TOP_K = 5
+TOP_K = 10
 MAX_SEQ_LENGTH = 256
 EMBEDDING_DIM = 768
 RETRIEVAL_MODE = "hybrid"      # Chế độ truy hồi mặc định: "hybrid", "dense", hoặc "bm25"

@@ -40,7 +40,7 @@ def get_api_key() -> Optional[str]:
     return key_to_use
 
 
-def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> dict:
+def generate(prompt: str) -> dict:
     """Gọi Gemini với retry giới hạn cho các lỗi tạm thời."""
     first_api_key = get_api_key()
     if not first_api_key:
