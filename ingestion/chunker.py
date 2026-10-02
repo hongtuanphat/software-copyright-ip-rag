@@ -11,9 +11,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
 
-ARTICLE_RE = re.compile(r"^Điều\s+(\d+[a-zà-ỹ]*)\.\s*(.+)$", re.IGNORECASE)
-CLAUSE_RE = re.compile(r"^(\d+[a-z]*)\.\s+(.*)$", re.IGNORECASE)
-POINT_RE = re.compile(r"^([a-zđ])\)\s+(.*)$", re.IGNORECASE)
+ARTICLE_RE = re.compile(r"^Điều\s+(\d+[a-zà-ỹA-ZÀ-Ỹ]*)\.?\s*(.*)$", re.IGNORECASE)
+CLAUSE_RE = re.compile(r"^(\d+[a-zđA-ZĐ]*)\.?\s+(.*)$", re.IGNORECASE)
 DISTRACTOR_MARKER = "DISTRACTOR"
 IN_SCOPE_MARKER = "IN-SCOPE"
 
@@ -121,57 +120,6 @@ def parse_law_text(
             body_text = "\n".join(c_lines).strip()
             if not body_text:
                 continue
-
-            # Sub-clause chunking: Nếu khoản > 200 chữ, băm nhỏ theo Điểm (a, b, c...)
-            if len(body_text.split()) > 200:
-                point_blocks: list[tuple[Optional[str], list[str]]] = []
-                curr_point_no: Optional[str] = None
-                curr_point_lines: list[str] = []
-                
-                for line in c_lines:
-                    p_match = POINT_RE.match(line)
-                    if p_match:
-                        if curr_point_lines or curr_point_no is not None:
-                            point_blocks.append((curr_point_no, curr_point_lines))
-                        curr_point_no = p_match.group(1).lower()
-                        curr_point_lines = [line]
-                    else:
-                        curr_point_lines.append(line)
-                if curr_point_lines or curr_point_no is not None:
-                    point_blocks.append((curr_point_no, curr_point_lines))
-                
-                # Chỉ chia Điểm nếu thực sự tìm thấy ít nhất 1 Điểm
-                if any(p_no is not None for p_no, _ in point_blocks):
-                    intro_text = ""
-                    for p_no, p_lines in point_blocks:
-                        p_body = "\n".join(p_lines).strip()
-                        if not p_body:
-                            continue
-                        
-                        if p_no is None:
-                            intro_text = p_body
-                            continue
-                        
-                        # Ghép đoạn mở đầu của Khoản vào mỗi Điểm để giữ ngữ cảnh
-                        full_text = intro_text + "\n" + p_body if intro_text else p_body
-                        clause_suffix = f"_Kh{c_no}" if c_no else ""
-                        point_suffix = f"_Pt{p_no}"
-                        pid = _get_unique_pid(f"{sanitized_code}_Art{art_no}{clause_suffix}{point_suffix}")
-                        
-                        provisions.append(
-                            Provision(
-                                provision_id=pid,
-                                law_code=law_code,
-                                article_no=art_no,
-                                clause_no=c_no,
-                                title=art_title,
-                                text=full_text,
-                                topic=topic,
-                                is_distractor=is_dist,
-                                source_url=source_url,
-                            )
-                        )
-                    continue
 
             # Mặc định: Giữ nguyên là 1 chunk
             clause_suffix = f"_Kh{c_no}" if c_no else ""

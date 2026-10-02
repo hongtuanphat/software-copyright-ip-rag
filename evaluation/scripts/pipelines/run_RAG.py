@@ -51,7 +51,6 @@ def run_hybrid_experiment(
             "answer": res.answer,
             "raw_answer": res.raw_answer,
             "retrieved_ids": retrieved_ids,
-            "used_citations": res.used_citations,
             "retrieval_hits": res.retrieval_hits,
             "cited_documents": res.cited_documents,
             "is_refused": res.is_refused,

@@ -67,7 +67,7 @@ def generate(query: str, prompt: str, hits: list[RetrievalHit]) -> dict:
                 30.0,
             ))
 
-    raise RuntimeError("Gemini không khả dụng sau số lần thử cho phép.") from last_error
+    raise RuntimeError(f"Gemini không khả dụng sau số lần thử cho phép. Lỗi cuối: {last_error}") from last_error
 
 
 def _is_retryable_error(error: Exception) -> bool:
@@ -89,7 +89,7 @@ class DecisionEnum(str, Enum):
 class RAGResponseSchema(BaseModel):
     decision: DecisionEnum = Field(description="Quyết định là ANSWER hay REFUSE")
     reason: str = Field(description="Lý do: answered, partial_context, false_premise, other_ip_object, out_of_domain, insufficient_context, prompt_injection")
-    used_citations: list[int] = Field(description="Danh sách các số TÀI LIỆU được sử dụng")
+    used_documents: list[str] = Field(description="Danh sách provision_id của các tài liệu được sử dụng. Trả về mảng rỗng [] nếu từ chối.")
     answer: str = Field(description="Nội dung câu trả lời")
 
 

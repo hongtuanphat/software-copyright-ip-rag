@@ -16,7 +16,7 @@ from generation.llm import _call_gemini, get_api_key
 from ingestion.chunker import load_provisions
 from ingestion.utils import build_index_text
 from generation.prompt_builder import SYSTEM_INSTRUCTION
-from generation.citation_resolver import resolve_citations
+
 
 
 def run_long_context_experiment(
@@ -27,8 +27,8 @@ def run_long_context_experiment(
 ) -> None:
     provisions = load_provisions(config.CHUNKS_PATH)
     context = "\n\n".join(
-        f"TÀI LIỆU [{index}]:\n{build_index_text(provision)}"
-        for index, provision in enumerate(provisions, 1)
+        f"{build_index_text(provision)}"
+        for provision in provisions
     )
 
     def process_func(question: str) -> dict[str, Any]:
@@ -48,17 +48,15 @@ def run_long_context_experiment(
             answer_content = llm_response.get("answer", "")
             decision_str = str(llm_response.get("decision", "")).strip().upper()
             reason_str = str(llm_response.get("reason", "")).strip()
-            raw_used_citations = llm_response.get("used_citations", [])
         except json.JSONDecodeError:
             import logging
             logging.warning(f"Lỗi JSONDecodeError trong long-context: {answer_text}")
             answer_content = answer_text
             decision_str = ""
             reason_str = ""
-            raw_used_citations = []
             
-        # Tạo danh sách tài liệu ngữ cảnh từ toàn bộ corpus (phục vụ mô hình long-context)
-        context_documents = [
+        # Trả về tất cả các tài liệu được dùng làm context
+        cited_documents = [
             {
                 "provision_id": p.provision_id,
                 "article_no": p.article_no,
@@ -67,16 +65,14 @@ def run_long_context_experiment(
                 "score": 1.0,
                 "is_distractor": p.is_distractor,
             }
-            for p in provisions
+            for p in provisions if not p.is_distractor
         ]
-            
-        answer_content, cited_documents, used_citations = resolve_citations(answer_content, raw_used_citations, context_documents)
             
         return {
             "answer": answer_content if decision_str != "REFUSE" else "Xin lỗi, câu hỏi nằm ngoài phạm vi.", 
             "raw_answer": raw_answer_text,
             "retrieved_ids": [], 
-            "used_citations": used_citations,
+            "used_citations": [],
             "cited_documents": cited_documents,
             "citation_candidates": [],
             "is_refused": decision_str == "REFUSE",

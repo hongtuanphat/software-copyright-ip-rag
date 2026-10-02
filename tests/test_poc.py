@@ -304,7 +304,7 @@ def test_llm_runtime_retries_transient_errors_with_backoff(monkeypatch):
     attempts = []
     sleeps = []
     responses = [TimeoutError("timeout"), RuntimeError("503 unavailable"),
-                 '{"decision":"REFUSE","reason":"insufficient_context","used_citations":[],"answer":""}']
+                 '{"decision":"REFUSE","reason":"insufficient_context","used_documents":[],"answer":""}']
 
     def call_gemini(prompt, api_key):
         attempts.append(api_key)
@@ -389,8 +389,8 @@ def test_cem_maps_llm_markers_to_candidate_ids(tmp_path):
                             {"provision_id": "doc-3", "is_distractor": False},
                     ],
                     "cited_documents": [
-                        "doc-1",
-                        "doc-3",
+                        {"provision_id": "doc-1"},
+                        {"provision_id": "doc-3"},
                     ],
                 },
             },
@@ -438,9 +438,9 @@ def test_pipeline_api_query_in_scope(monkeypatch):
         pipeline_module,
         "generate",
         lambda question, prompt, hits: {
-            "answer": "Câu trả lời pháp lý thử nghiệm [1].",
+            "answer": "Câu trả lời pháp lý thử nghiệm.",
             "decision": "ANSWER",
-            "used_citations": [1]
+            "used_documents": [hits[0].provision.provision_id] if hits else []
         },
     )
     pipeline = RAGPipeline()
@@ -450,7 +450,7 @@ def test_pipeline_api_query_in_scope(monkeypatch):
     assert res.question == question
     assert res.is_refused is False
     assert len(res.answer) > 20
-    assert len(res.used_citations) > 0
+    assert len(res.cited_documents) > 0
     assert res.execution_time_seconds > 0
     assert len(res.retrieval_hits) > 0
 
@@ -462,20 +462,20 @@ def test_pipeline_api_query_refusal_out_of_scope():
 
     assert res.is_refused is True
     assert "ngoài phạm vi" in res.refusal_reason.lower() or "xe máy" in res.refusal_reason.lower()
-    assert len(res.used_citations) == 0
+    assert len(res.cited_documents) == 0
 
 
 def test_pipeline_api_answer_rag_helper(monkeypatch):
     import pipeline as pipeline_module
 
     monkeypatch.setattr(pipeline_module, "generate", lambda question, prompt, hits: {
-        "answer": "Câu trả lời [1].",
-        "used_citations": [1]
+        "answer": "Câu trả lời.",
+        "used_documents": []
     })
     data = answer_rag("Điều 22 Luật Sở hữu trí tuệ quy định gì về bản sao dự phòng phần mềm?")
     assert isinstance(data, dict)
     assert "answer" in data
-    assert "used_citations" in data
+    assert "cited_documents" in data
     assert "is_refused" in data
     assert data["is_refused"] is False
 # ==============================================================================

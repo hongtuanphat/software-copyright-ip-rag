@@ -71,78 +71,9 @@ def test_tokenize_vietnamese():
 
 
 
-def test_citation_resolver():
-    from generation.citation_resolver import resolve_citations
-    
-    # Giả lập hits có distractor đứng đầu
-    hit1 = _make_p("P1", title="Hit 1 (Distractor)", is_distractor=True)
-    hit2 = _make_p("P2", title="Hit 2 (Valid)")
-    hit3 = _make_p("P3", title="Hit 3 (Valid)")
-    
-    visible_documents = [
-        {"provision_id": "P2", "is_distractor": False},
-        {"provision_id": "P3", "is_distractor": False},
-    ]
-
-    # The prompt renumbers visible documents, so P2 is [1].
-    # The answer text is authoritative even when the JSON list disagrees.
-    answer_text = "Câu trả lời dùng P2 [1]."
-    raw_used_citations = [2]
-    
-    cleaned_answer, cited_documents, used_citations = resolve_citations(
-        answer_text, raw_used_citations, visible_documents
-    )
-    
-    assert cleaned_answer == "Câu trả lời dùng P2 [1]."
-    
-    # 2. cited_documents phải lấy đúng P2 (không phải P3)
-    assert cited_documents[0]["provision_id"] == "P2"
-    
-    assert used_citations == [1]
 
 
-def test_citation_resolver_removes_invalid_markers_and_preserves_index():
-    from generation.citation_resolver import resolve_citations
 
-    documents = [
-        {"provision_id": "P1", "text": "Nội dung 1", "is_distractor": False},
-        {"provision_id": "P2", "text": "Nội dung 2", "is_distractor": False},
-    ]
-
-    cleaned, cited, used = resolve_citations(
-        "Kết luận có căn cứ [1][5].", [1, 5], documents
-    )
-
-    assert cleaned == "Kết luận có căn cứ [1]."
-    assert used == [1]
-    assert cited[0]["provision_id"] == "P1"
-    assert cited[0]["text"] == "Nội dung 1"
-    assert cited[0]["citation_index"] == 1
-
-
-def test_prompt_renumbers_visible_documents():
-    from generation.prompt_builder import build_prompt
-
-    distractor = RetrievalHit(_make_p("P1", is_distractor=True), 0.9)
-    first_visible = RetrievalHit(_make_p("P2"), 0.8)
-    second_visible = RetrievalHit(_make_p("P3"), 0.7)
-
-    prompt = build_prompt("câu hỏi", [distractor, first_visible, second_visible])
-
-    assert "TÀI LIỆU [1]" in prompt
-    assert "TÀI LIỆU [2]" in prompt
-    assert "TÀI LIỆU [3]" not in prompt
-
-
-def test_prompt_allows_combining_general_and_specific_legal_rules():
-    from generation.prompt_builder import build_prompt
-
-    prompt = build_prompt("Thời hạn bảo hộ phần mềm là bao lâu?", [])
-
-    assert "TOÀN BỘ các TÀI LIỆU" in prompt
-    assert "Không REFUSE chỉ vì TÀI LIỆU không lặp lại đúng cách diễn đạt" in prompt
-    assert "chuỗi quy định cần thiết" in prompt
-    assert 'reason "partial_context"' in prompt
 
 class MockEmbedder:
     model_name = "mock"

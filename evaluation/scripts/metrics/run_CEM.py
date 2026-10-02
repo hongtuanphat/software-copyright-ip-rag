@@ -19,7 +19,7 @@ setup_encoding()
 import config
 from evaluation.core.metrics import CitationMetricsReport, extract_article_level
 from evaluation.core.utils import is_out_of_scope
-from generation.citation_resolver import extract_citation_indices
+
 
 def evaluate_cem(file_path: Path) -> dict:
     """Đọc file kết quả jsonl và tính toán các chỉ số Citation cho file đó."""
@@ -53,23 +53,10 @@ def evaluate_cem(file_path: Path) -> dict:
         
         pred_list = []
         if status != "error":
-            raw_answer = res.get("raw_answer", res.get("answer", ""))
-            citation_indices = extract_citation_indices(raw_answer)
-            visible_candidates = [
-                candidate
-                for candidate in res.get("citation_candidates", [])
-                if not isinstance(candidate, dict) or not candidate.get("is_distractor", False)
-            ]
-            for index in citation_indices:
-                if 1 <= index <= len(visible_candidates):
-                    candidate = visible_candidates[index - 1]
-                    provision_id = (
-                        candidate.get("provision_id", "")
-                        if isinstance(candidate, dict)
-                        else candidate
-                    )
-                    if provision_id:
-                        pred_list.append(provision_id)
+            cited_docs = res.get("cited_documents", [])
+            for doc in cited_docs:
+                if isinstance(doc, dict) and "provision_id" in doc:
+                    pred_list.append(doc["provision_id"])
             
         is_in_scope = not out_of_scope
         

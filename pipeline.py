@@ -17,7 +17,7 @@ import config
 from generation.llm import generate
 from generation.prompt_builder import build_prompt
 from generation.refusal_gate import decide
-from generation.citation_resolver import resolve_citations
+from generation.citation import build_citations
 from ingestion.chunker import Provision
 from ingestion.utils import build_index_text
 from monitoring.effective_checker import get_active_alerts
@@ -36,7 +36,6 @@ class RAGResponse:
     raw_answer: str = ""
     should_refuse: bool = False
     refusal_reason: str = ""
-    used_citations: list[int] = field(default_factory=list)
     retrieval_hits: list[dict[str, Any]] = field(default_factory=list)
     cited_documents: list[dict[str, Any]] = field(default_factory=list)
     execution_time_ms: float = 0.0
@@ -194,14 +193,15 @@ class RAGPipeline:
         decision_str = str(llm_response.get("decision", "")).strip().upper()
         reason_str = str(llm_response.get("reason", "")).strip()
         answer_text = llm_response.get("answer", "")
-        raw_used_citations = llm_response.get("used_citations", [])
         
-        visible_documents = [document for document in retrieval_hits if not document["is_distractor"]]
-        answer_text, cited_documents, used_citations = resolve_citations(
-            answer_text,
-            raw_used_citations,
-            visible_documents,
-        )
+        cited_documents = build_citations(hits)
+        
+        # Chỉ lấy những doc mà LLM thực sự dùng
+        used_ids = llm_response.get("used_documents", [])
+        if used_ids and decision_str != "REFUSE":
+            cited_documents = [doc for doc in cited_documents if doc["provision_id"] in used_ids]
+        else:
+            cited_documents = []
         
         # Nếu LLM phân tích ngữ cảnh và quyết định từ chối (Dynamic Refusal)
         if decision_str == "REFUSE":
@@ -213,6 +213,7 @@ class RAGPipeline:
                 should_refuse=True,
                 refusal_reason=reason_str if reason_str else "LLM quyết định từ chối dựa trên phân tích ngữ cảnh và yêu cầu.",
                 retrieval_hits=retrieval_hits,
+                cited_documents=[],
                 execution_time_ms=elapsed_ms,
                 active_alerts=active_alerts,
             )
@@ -225,7 +226,6 @@ class RAGPipeline:
             raw_answer=llm_response.get("answer", ""),
             should_refuse=False,
             refusal_reason=reason_str,
-            used_citations=used_citations,
             retrieval_hits=retrieval_hits,
             cited_documents=cited_documents,
             execution_time_ms=elapsed_ms,

@@ -42,7 +42,6 @@ def run_bm25_experiment(
             "answer": response.answer,
             "raw_answer": response.raw_answer,
             "retrieval_hits": response.retrieval_hits,
-            "used_citations": response.used_citations,
             "cited_documents": response.cited_documents,
             "is_refused": response.is_refused,
             "refusal_reason": response.refusal_reason,

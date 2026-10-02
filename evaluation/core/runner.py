@@ -79,7 +79,7 @@ def run_evaluation_experiment(
     dataset_path: Path | None = None,
     output_path: Path | None = None,
     limit: int | None = None,
-    delay_seconds: float = 4.0,
+    delay_seconds: float = 10.0,
 ) -> None:
     """
     Chạy thử nghiệm trên tập dữ liệu và lưu kết quả.
@@ -180,7 +180,6 @@ def run_evaluation_experiment(
                         "answer": result.get("answer"),
                         "raw_answer": result.get("raw_answer", result.get("answer")),
                         "retrieved_ids": [h.get("provision_id") for h in result.get("retrieval_hits", [])],
-                        "used_citations": result.get("used_citations", []),
                         "citation_candidates": result.get("retrieval_hits", []),
                         "cited_documents": result.get("cited_documents", []),
                         "refused": result.get("is_refused", False),
@@ -211,7 +210,6 @@ def run_evaluation_experiment(
                     "response": {
                         "answer": None,
                         "retrieved_ids": [],
-                        "used_citations": [],
                         "citation_candidates": [],
                         "refused": None,
                         "latency_ms": round(latency_ms, 2),

@@ -175,7 +175,7 @@ def answer_question(item: dict, pipeline) -> None:
     print(res.answer)
     print()
 
-    print(f"-> Căn cứ pháp lý trích dẫn ({len(res.used_citations)} điều khoản):")
+    print(f"-> Căn cứ pháp lý trích dẫn ({len(res.cited_documents)} điều khoản):")
     for doc in res.cited_documents:
         c_clause = doc.get('clause_no')
         c_tag = f" Khoản {c_clause}" if c_clause else ""
