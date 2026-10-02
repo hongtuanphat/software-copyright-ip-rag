@@ -19,8 +19,9 @@ from pathlib import Path
 import numpy as np
 
 import config
-from ingestion.chunker import parse_law_text, Provision
+from ingestion.chunker import parse_law_text, Provision, save_provisions
 from ingestion.metadata import attach_effective_metadata, load_law_meta
+from ingestion.utils import build_index_text
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
 from retrieval.bm25_index import Bm25Index
@@ -28,11 +29,10 @@ from retrieval.retriever import retrieve_hybrid
 from generation.refusal_gate import decide
 from generation.prompt_builder import build_prompt
 from generation.llm import generate
-from generation.citation import build_citations
 from monitoring.effective_checker import get_active_alerts
 
 
-AMENDED_ARTICLES_IN_ND17 = {"1", "5", "8", "22", "23", "25", "29", "38", "39", "40", "41", "43", "71", "84", "87", "88", "98", "99", "110"}
+AMENDED_ARTICLES_IN_ND17 = config.PARTIALLY_AMENDED_ARTICLES["17/2023/ND-CP"]
 
 # 5 Câu hỏi đại diện cho 5 Nhóm kiểm thử
 SAMPLE_QUESTIONS = [
@@ -115,10 +115,7 @@ def build_corpus(force: bool = False) -> list[Provision]:
         all_provisions.extend(provisions)
 
     # Ghi tự động danh sách chunks mới ra data/processed/chunks.jsonl
-    config.CHUNKS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with config.CHUNKS_PATH.open("w", encoding="utf-8") as f:
-        for p in all_provisions:
-            f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
+    save_provisions(all_provisions, config.CHUNKS_PATH)
 
     return all_provisions
 
@@ -126,10 +123,7 @@ def build_corpus(force: bool = False) -> list[Provision]:
 def index_corpus(provisions: list[Provision], output_index_path: Path | None = None, output_chunks_path: Path | None = None):
     """Xây dựng chỉ mục FAISS và BM25 cho tập dữ liệu hợp nhất."""
     embedder = get_embedder()
-    texts = [
-        f"[{p.law_code}] Điều {p.article_no}. {p.title}\n{f'Khoản {p.clause_no}. ' if p.clause_no else ''}{p.text}"
-        for p in provisions
-    ]
+    texts = [build_index_text(p) for p in provisions]
     vectors = embedder.encode(texts)
     dim = vectors.shape[1]
 
@@ -143,20 +137,17 @@ def index_corpus(provisions: list[Provision], output_index_path: Path | None = N
         p.embedding_model = model_name
 
     # Cập nhật thông tin vector vào file chunks.jsonl
-    target_chunks.parent.mkdir(parents=True, exist_ok=True)
-    with target_chunks.open("w", encoding="utf-8") as f:
-        for p in provisions:
-            f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")
+    save_provisions(provisions, target_chunks)
 
     faiss_index = FaissFlatIndex(dim)
     faiss_index.add(np.asarray(vectors), [p.provision_id for p in provisions])
-    faiss_index.save(target_index)
+    faiss_index.save(target_index, model_name=model_name)
 
     bm25 = Bm25Index(texts, [p.provision_id for p in provisions])
     return embedder, faiss_index, bm25
 
 
-def answer_question(item: dict, provisions, embedder, faiss_index, bm25_index) -> None:
+def answer_question(item: dict, pipeline) -> None:
     """Thực thi pipeline Hybrid Search, đánh giá từ chối và sinh câu trả lời."""
     query = item["question"]
     g_name = item["group_name"]
@@ -164,50 +155,31 @@ def answer_question(item: dict, provisions, embedder, faiss_index, bm25_index) -
     print(f"[{g_name}]")
     print(f"CÂU HỎI: {query}")
 
-    hits = retrieve_hybrid(
-        query=query,
-        provisions=provisions,
-        embedder=embedder,
-        faiss_index=faiss_index,
-        bm25_index=bm25_index,
-        top_k=config.TOP_K,
-    )
-    print(f"-> Hybrid Retrieval trả về {len(hits)} kết quả còn hiệu lực (top_k={config.TOP_K}):")
-    for h in hits:
-        flag = " [DISTRACTOR]" if h.provision.is_distractor else ""
-        clause_tag = f" Khoản {h.provision.clause_no}" if h.provision.clause_no else ""
-        print(f"   score={h.score:.4f}  [{h.provision.law_code}] Điều {h.provision.article_no}{clause_tag}{flag}  {h.provision.title}")
+    res = pipeline.query(query, top_k=config.TOP_K)
+    
+    print(f"-> Hybrid Retrieval trả về {len(res.retrieval_hits)} kết quả (top_k={config.TOP_K}):")
+    for h in res.retrieval_hits:
+        flag = " [DISTRACTOR]" if h.get("is_distractor") else ""
+        clause_tag = f" Khoản {h.get('clause_no')}" if h.get("clause_no") else ""
+        print(f"   score={h.get('score', 0):.4f}  Điều {h.get('article_no')}{clause_tag}{flag}  {h.get('title')}")
 
-    decision = decide(query, hits)
-    print(f"-> Refusal gate: should_refuse={decision.should_refuse} | lý do: {decision.reason}")
+    print(f"-> Refusal gate: should_refuse={res.should_refuse} | lý do: {res.refusal_reason}")
 
-    if decision.should_refuse:
-        print(">> TỪ CHỐI TRẢ LỜI (Kích hoạt Refusal Gate).")
-        print(f">> Lý do: {decision.reason}")
+    if res.should_refuse:
+        print(">> TỪ CHỐI TRẢ LỜI (Kích hoạt Refusal Gate hoặc LLM Dynamic Refusal).")
+        print(f">> Lý do: {res.refusal_reason}")
         print()
         return
 
-    # Lấy các cảnh báo hiệu lực nếu có
-    active_alerts = get_active_alerts()
-    prompt = build_prompt(
-        query=query,
-        hits=hits,
-        active_alerts=active_alerts,
-    )
-
-    print("-> Đang gọi Gemini LLM...")
-    response_text = generate(query, prompt, hits)
     print("-> Phản hồi từ mô hình:")
-    print(response_text)
+    print(res.answer)
     print()
 
-    citations = build_citations(hits)
-    print(f"-> Căn cứ pháp lý trích dẫn ({len(citations)} điều khoản):")
-    for c in citations:
-        c_clause = c.get("clause_no")
+    print(f"-> Căn cứ pháp lý trích dẫn ({len(res.used_citations)} điều khoản):")
+    for doc in res.cited_documents:
+        c_clause = doc.get('clause_no')
         c_tag = f" Khoản {c_clause}" if c_clause else ""
-        print(f"   - [{c.get('law_code')}] Điều {c.get('article_no')}{c_tag}: {c.get('title')}")
-        print(f"     URL: {c.get('source_url')}")
+        print(f"   - Điều {doc.get('article_no')}{c_tag}: {doc.get('title')}")
     print()
 
 
@@ -230,16 +202,14 @@ def main():
         embedder, faiss_index, bm25_index = index_corpus(provisions)
         print(f"-> Đã lưu chỉ mục vector FAISS ({len(faiss_index)} vectors) và BM25.")
     else:
-        embedder = get_embedder()
-        faiss_index = FaissFlatIndex.load(config.FAISS_INDEX_PATH)
-        texts = [p.text for p in provisions]
-        p_ids = [p.provision_id for p in provisions]
-        bm25_index = Bm25Index(texts, p_ids)
-        print(f"-> Đã nạp chỉ mục có sẵn: {len(faiss_index)} FAISS vectors, {len(bm25_index)} BM25 docs.")
+        print("-> Bỏ qua tính toán vector. Chỉ mục sẽ được nạp thông qua RAGPipeline.")
+
+    from pipeline import get_pipeline
+    pipeline = get_pipeline(mode="hybrid")
 
     print("\n[Bước 3] Chạy thử nghiệm 5 câu hỏi kiểm thử đại diện...")
     for item in SAMPLE_QUESTIONS:
-        answer_question(item, provisions, embedder, faiss_index, bm25_index)
+        answer_question(item, pipeline)
 
     print("=" * 78)
     print("HOÀN THÀNH KIỂM THỬ HỆ THỐNG.")

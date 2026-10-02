@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import config
-from ingestion.chunker import Provision
+from ingestion.chunker import Provision, load_provisions, save_provisions
 from monitoring.crawler import CrawlResult, run_monthly_check, crawl_all_watchlist
 
 
@@ -28,23 +28,12 @@ def load_chunks(path: Path | None = None) -> list[Provision]:
     target = path or config.CHUNKS_PATH
     if not target.exists():
         return []
-    provisions: list[Provision] = []
-    with open(target, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                provisions.append(Provision(**json.loads(line)))
-    return provisions
+    return load_provisions(target)
 
 
 def save_chunks(provisions: list[Provision], path: Path | None = None) -> None:
     """Lưu lại danh sách các đoạn luật sau khi đã cập nhật trạng thái."""
-    target = path or config.CHUNKS_PATH
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with open(target, "w", encoding="utf-8") as f:
-        for p in provisions:
-            data = p.to_dict()
-            f.write(json.dumps(data, ensure_ascii=False) + "\n")
+    save_provisions(provisions, path or config.CHUNKS_PATH)
 
 
 def check_expiring_soon(effective_to: str | None, warning_days: int = config.EXPIRY_WARNING_DAYS) -> bool:
@@ -74,6 +63,18 @@ def apply_crawl_results(
     snapshots = [crawl_results] if isinstance(crawl_results, CrawlResult) else list(crawl_results)
 
     for snapshot in snapshots:
+        if snapshot.status == "unverified":
+            alerts.append({
+                "law_code": snapshot.law_code,
+                "alert_type": "UNVERIFIED_SOURCE",
+                "created_at": now_iso,
+                "message": f"Không thể xác minh trạng thái hiện tại của {snapshot.law_code}; giữ nguyên dữ liệu cũ.",
+            })
+            for p in provisions:
+                if p not in updated:
+                    updated.append(p)
+            continue
+
         is_expiring = check_expiring_soon(snapshot.effective_to)
         is_replaced = snapshot.status == "het_hieu_luc"
         is_amended = snapshot.status == "con_hieu_luc_mot_phan" or bool(snapshot.replaced_by)
@@ -106,8 +107,15 @@ def apply_crawl_results(
 
         for p in provisions:
             if p.law_code == snapshot.law_code:
-                # Nếu văn bản chỉ bị sửa đổi 1 phần thì không đổi status của cả văn bản thành het_hieu_luc
-                if snapshot.status == "het_hieu_luc":
+                amended = (
+                    p.provision_id in set(snapshot.amended_provision_ids)
+                    or p.article_no in set(snapshot.amended_articles)
+                )
+                if snapshot.status == "con_hieu_luc_mot_phan" and amended:
+                    p.status = "bi_sua_doi"
+                    p.effective_to = snapshot.effective_to
+                    p.replaced_by = snapshot.replaced_by
+                elif snapshot.status == "het_hieu_luc":
                     p.status = snapshot.status
                     p.effective_to = snapshot.effective_to
                     p.replaced_by = snapshot.replaced_by
@@ -188,12 +196,12 @@ def get_active_alerts(path: Path | None = None, alerts_path: Path | None = None)
         return _ALERT_CACHE
 
 
-def run(use_mock: bool = False) -> None:
+def run() -> None:
     """Hàm chính thực hiện quy trình kiểm tra và cập nhật hiệu lực đa văn bản."""
     print("=" * 70)
     print("HỆ THỐNG GIÁM SÁT HIỆU LỰC ĐA VĂN BẢN (WATCHDOG)")
     print("=" * 70)
-    snapshots = crawl_all_watchlist(use_mock=use_mock)
+    snapshots = crawl_all_watchlist()
     for s in snapshots:
         rep_str = f" | Sửa đổi bởi: {s.replaced_by}" if s.replaced_by else ""
         print(f"[{s.law_code:<16}] Trạng thái: {s.status:<22} | Hiệu lực: {s.effective_from}{rep_str}")

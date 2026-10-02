@@ -222,3 +222,12 @@ def load_provisions(chunks_path: Path) -> list[Provision]:
             if line:
                 provisions.append(Provision(**json.loads(line)))
     return provisions
+
+
+def save_provisions(provisions: list[Provision], path: Path) -> None:
+    """Lưu danh sách Provision ra file chunks.jsonl."""
+    import json
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for p in provisions:
+            f.write(json.dumps(p.to_dict(), ensure_ascii=False) + "\n")

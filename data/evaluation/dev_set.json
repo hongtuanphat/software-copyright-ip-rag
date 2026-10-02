@@ -30,8 +30,8 @@
     "expected_behavior": "answer",
     "question": "Ý tưởng sản phẩm hoặc thuật toán xử lý của một chương trình máy tính có thuộc phạm vi bảo hộ quyền tác giả không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art15_Kh3",
-      "67-VBHN-VPQH_Art15_Kh4"
+      "67-VBHN-VPQH_Art15_Kh4",
+      "67-VBHN-VPQH_Art15_Kh3"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 3 và Khoản 4 Điều 15, ý tưởng sản phẩm hoặc thuật toán xử lý của một chương trình máy tính hoàn toàn không thuộc phạm vi bảo hộ của quyền tác giả.Quy định pháp lý loại trừ bảo hộ đối với các đối tượng sau:\n      - Không bảo hộ ý tưởng và nội dung: Quyền tác giả chỉ bảo hộ hình thức thể hiện bên ngoài mang tính sáng tạo của tác phẩm (ví dụ như các dòng mã nguồn cụ thể được viết ra) chứ không bảo hộ ý tưởng, nội dung thông tin hay các giải pháp kỹ thuật bên trong chương trình máy tính.\n      - Không bảo hộ thuật toán và quy trình: Thuật toán xử lý của chương trình máy tính bản chất là quy trình, hệ thống, phương pháp hoạt động, khái niệm, nguyên lý hoặc số liệu. Tất cả các đối tượng này đều bị loại trừ hoàn toàn khỏi phạm vi bảo hộ quyền tác giả nhằm tránh sự độc quyền đối với các nguyên lý toán học và giải pháp công nghệ cơ bản.",
     "references": [
@@ -175,8 +175,8 @@
     "expected_behavior": "answer",
     "question": "Ai là chủ sở hữu quyền tác giả đối với chương trình máy tính do các đồng tác giả cùng sáng tạo mà phần mã nguồn không thể tách rời để sử dụng độc lập?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art38_Kh1",
-      "67-VBHN-VPQH_Art12a_Kh3"
+      "67-VBHN-VPQH_Art12a_Kh3",
+      "67-VBHN-VPQH_Art38_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 1 Điều 38 và Khoản 3 Điều 12a, khi một chương trình máy tính do nhiều đồng tác giả cùng chung tay sáng tạo bằng thời gian, tài chính và cơ sở vật chất của mình mà phần mã nguồn đan xen chặt chẽ không thể bóc tách ra để vận hành độc lập, việc xác định quyền sở hữu được quy định theo hai trường hợp pháp lý sau:\n      - Trường hợp mặc định theo luật khi không có thỏa thuận khác: Tất cả các đồng tác giả đều là đồng chủ sở hữu quyền tác giả đối với chương trình máy tính đó. Họ có chung các quyền nhân thân (Điều 19) và quyền tài sản (Điều 20). Việc thực hiện bất kỳ quyền nhân thân hay định đoạt quyền tài sản nào (ví dụ: cấp phép sử dụng phần mềm, chuyển nhượng mã nguồn, công bố bản cập nhật) bắt buộc phải đạt được sự thỏa thuận và thống nhất ý chí của tất cả các đồng tác giả. Không một đồng tác giả nào được quyền tự ý đơn phương định đoạt chương trình máy tính nếu chưa có sự đồng ý của những người còn lại.\n      - Trường hợp các bên có thỏa thuận riêng: Các đồng tác giả có quyền ký kết một văn bản thỏa thuận quy định về cơ chế biểu quyết biểu quyết đa số, cử ra một người đại diện pháp luật thay mặt nhóm thực hiện các giao dịch thương mại, hoặc phân chia tỷ lệ lợi nhuận khi khai thác phần mềm. Khi đó, việc khai thác và định đoạt chương trình máy tính sẽ tuân thủ nghiêm ngặt theo các điều khoản thỏa thuận bằng văn bản của nhóm đồng tác giả này.",
     "references": [
@@ -229,10 +229,10 @@
     "expected_behavior": "answer",
     "question": "Quyền cho thuê bản gốc hoặc bản sao chương trình máy tính nhằm mục đích thương mại thuộc về ai?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art20_Kh1",
       "67-VBHN-VPQH_Art20_Kh2",
+      "17-2023-ND-CP_Art12_Kh5",
       "17-2023-ND-CP_Art12_Kh4",
-      "17-2023-ND-CP_Art12_Kh5"
+      "67-VBHN-VPQH_Art20_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Điểm e Khoản 1, Khoản 2 Điều 20 Luật Sở hữu trí tuệ và Khoản 4, Khoản 5 Điều 12 Nghị định số 17/2023/NĐ-CP, quyền cho thuê bản gốc hoặc bản sao chương trình máy tính nhằm mục đích thương mại được quy định như sau:\n      - Chủ thể nắm giữ quyền: Quyền độc quyền thực hiện hoặc cho phép người khác thực hiện việc cho thuê bản gốc hoặc bản sao chương trình máy tính nhằm mục đích thương mại thuộc về chủ sở hữu quyền tác giả của chương trình máy tính đó.\n      - Nhánh loại trừ mặc định theo luật: Quyền cho thuê đối với chương trình máy tính hoàn toàn không áp dụng trong trường hợp chương trình máy tính đó không phải là đối tượng chủ yếu của việc cho thuê. Ví dụ như chương trình máy tính được tích hợp sẵn, gắn liền với việc vận hành bình thường của các loại phương tiện giao thông hoặc các máy móc, thiết bị kỹ thuật khác mà mục đích thuê chính của khách hàng không phải là phần mềm này.\n      - Trường hợp có thỏa thuận riêng: Chủ sở hữu quyền tác giả có quyền thỏa thuận cấp quyền cho thuê phần mềm cho các đại lý phân phối thông qua các hợp đồng thương mại bằng văn bản để khai thác lợi ích kinh tế có thời hạn.",
     "references": [
@@ -321,10 +321,10 @@
     "question": "Hành vi trích xuất và phân tích mã nguồn công khai để huấn luyện hệ thống trí tuệ nhân tạo phi thương mại có vi phạm bản quyền không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art7_Kh5",
-      "134-2026-ND-CP_Art37a_Kh1",
-      "134-2026-ND-CP_Art37a_Kh2",
-      "134-2026-ND-CP_Art37b_Kh1",
-      "134-2026-ND-CP_Art37b_Kh2"
+      "134-2026-ND-CP_Art13_Kh2",
+      "134-2026-ND-CP_Art14_Kh1",
+      "134-2026-ND-CP_Art13_Kh1",
+      "134-2026-ND-CP_Art14_Kh2"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 134/2026/NĐ-CP, cụ thể tại Khoản 5 Điều 7 Luật Sở hữu trí tuệ cùng Điều 37a và Điều 37b Nghị định số 134/2026/NĐ-CP, hành vi trích xuất và sử dụng mã nguồn phần mềm để huấn luyện hệ thống trí tuệ nhân tạo (AI) được phân định rõ rệt theo các trường hợp pháp lý sau:\n      - Trường hợp mặc định không xâm phạm (Ngoại lệ khai thác dữ liệu): Hành vi trích xuất, phân tích mã nguồn được coi là không vi phạm bản quyền khi đáp ứng đồng thời đầy đủ 3 nhóm điều kiện sau:\n        1.  Mã nguồn đó đã được công bố hợp pháp và công chúng được quyền tiếp cận một cách hợp pháp.\n        2.  Việc sử dụng chỉ nhằm mục đích nghiên cứu khoa học, thử nghiệm, huấn luyện hệ thống trí tuệ nhân tạo và hoàn toàn không nhằm mục đích thương mại.\n        3.  Việc trích xuất không hủy bỏ hoặc làm vô hiệu hóa các biện pháp công nghệ bảo vệ quyền (như DRM, mật mã hóa) do chủ sở hữu thực hiện; đồng thời không gây phương hại hoặc ảnh hưởng bất hợp lý đến quyền khai thác bình thường của chủ thể quyền, và kết quả đầu ra của hệ thống AI không tạo ra sự cạnh tranh không lành mạnh trên thị trường.\n      - Trường hợp chủ sở hữu có thỏa thuận bảo lưu quyền (Opt-out): Nhà phát triển AI không được phép tự ý trích xuất nếu tác giả hoặc chủ sở hữu quyền tác giả của mã nguồn đó đã thực hiện quyền bảo lưu rõ ràng không cho phép sử dụng mã nguồn của mình để huấn luyện AI. Việc bảo lưu này phải được thể hiện công khai dưới dạng siêu dữ liệu (metadata), biện pháp công nghệ bảo vệ quyền hoặc thông tin quản lý quyền mà máy đọc được (machine-readable) gắn liền với bản gốc, bản sao tác phẩm điện tử, hoặc công bố công khai trên trang thông tin điện tử của tổ chức quản lý tập thể quyền tác giả được ủy quyền.",
     "references": [
@@ -417,8 +417,8 @@
     "expected_behavior": "answer",
     "question": "Thời hạn bảo hộ đối với các quyền nhân thân của lập trình viên tạo ra chương trình máy tính được quy định bao lâu?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art27_Kh1",
-      "67-VBHN-VPQH_Art27_Kh2"
+      "67-VBHN-VPQH_Art27_Kh2",
+      "67-VBHN-VPQH_Art27_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 1 và Khoản 2 Điều 27, thời hạn bảo hộ đối với các quyền nhân thân của lập trình viên (tác giả) sáng tạo ra chương trình máy tính được chia làm hai nhóm thời hạn pháp lý rõ rệt:\n      - Các quyền nhân thân được bảo hộ vô thời hạn: Bao gồm các quyền cốt lõi bảo vệ danh dự tác giả quy định tại Khoản 1, 2 và 4 Điều 19:\n        1.  Quyền đặt tên cho chương trình máy tính.\n        2.  Quyền đứng tên thật hoặc bút danh trên chương trình máy tính; được nêu tên thật hoặc bút danh khi chương trình máy tính được công bố, sử dụng.\n        3.  Quyền bảo vệ sự toàn vẹn của chương trình máy tính, không cho người khác xuyên tạc, sửa đổi, cắt xén dưới bất kỳ hình thức nào gây phương hại đến danh dự và uy tín của lập trình viên.\n      - Quyền nhân thân có thời hạn bảo hộ: Quyền công bố tác phẩm hoặc cho phép người khác công bố tác phẩm (quy định tại Khoản 3 Điều 19) được bảo hộ là suốt cuộc đời lập trình viên và năm mươi năm tiếp theo năm lập trình viên chết. Trong trường hợp chương trình máy tính có đồng tác giả, thời hạn bảo hộ quyền công bố này sẽ chấm dứt vào năm thứ năm mươi sau năm đồng tác giả cuối cùng chết.",
     "references": [
@@ -627,9 +627,9 @@
     "expected_behavior": "answer",
     "question": "Tòa án dựa trên nguyên tắc giả định nào để xác định chủ sở hữu bản quyền khi xử lý vụ án tranh chấp phần mềm?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art198a_Kh1",
-      "67-VBHN-VPQH_Art198a_Kh2",
       "17-2023-ND-CP_Art59_Kh1",
+      "67-VBHN-VPQH_Art198a_Kh2",
+      "67-VBHN-VPQH_Art198a_Kh1",
       "17-2023-ND-CP_Art59_Kh5"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Khoản 1, Khoản 2 Điều 198a Luật Sở hữu trí tuệ và Khoản 1, Khoản 5 Điều 59 Nghị định số 17/2023/NĐ-CP, trong các thủ tục tố tụng dân sự, hành chính, hình sự, nếu không có chứng cứ ngược lại để bác bỏ, Tòa án sẽ áp dụng nguyên tắc giả định quyền tác giả đối với chương trình máy tính như sau:\n      - Giả định chủ thể quyền: Cá nhân hoặc tổ chức được nêu tên theo cách thông thường trên chương trình máy tính được giả định là tác giả hoặc chủ thể quyền của chương trình máy tính đó.\n      - Nguyên tắc xác định việc nêu tên thông thường: Nêu tên theo cách thông thường được hiểu là việc ghi nhận tên tác giả hoặc tên tổ chức trên bản gốc tác phẩm, trên bản định hình đầu tiên hoặc các tài liệu liên quan.\n      - Giả định khi bản gốc không còn tồn tại: Trong trường hợp bản gốc tác phẩm hoặc bản định hình đầu tiên không còn tồn tại vật chất, chủ thể quyền tác giả vẫn được mặc định xác định dựa trên tên tác giả, nhà sản xuất được nêu trên các bản sao tương ứng đã được công bố hợp pháp hoặc trên các tài liệu liên quan khác trong chừng mực hợp lý để khẳng định chủ thể quyền.",
@@ -670,8 +670,8 @@
     "expected_behavior": "answer",
     "question": "Doanh nghiệp cung cấp dịch vụ Hosting có được miễn trừ trách nhiệm pháp lý khi người dùng lưu trữ phần mềm lậu trên hệ thống của mình không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art110",
+      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art111"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP (được sửa đổi, bổ sung bởi Nghị định số 134/2026/NĐ-CP), cụ thể tại Khoản 3 Điều 198b Luật Sở hữu trí tuệ và Điều 110, Điều 111 Nghị định số 17/2023/NĐ-CP, doanh nghiệp cung cấp dịch vụ Hosting (được xác định là doanh nghiệp cung cấp dịch vụ trung gian) được miễn trừ trách nhiệm pháp lý đối với hành vi xâm phạm bản quyền của người dùng khi đáp ứng đầy đủ hai trường hợp pháp lý sau:\n      - Trường hợp mặc định được miễn trừ trách nhiệm: Doanh nghiệp được miễn trừ hoàn toàn nghĩa vụ bồi thường thiệt hại nếu thỏa mãn đồng thời hai điều kiện nhánh sau:\n        1.  Doanh nghiệp hoàn toàn không biết và không có cơ sở để biết rằng nội dung thông tin số (phần mềm lậu) do người dùng tải lên và lưu trữ trên hệ thống Hosting của mình là xâm phạm quyền tác giả.\n        2.  Doanh nghiệp chủ động tiến hành các hành động kỹ thuật nhanh chóng để gỡ bỏ hoặc ngăn chặn việc truy nhập đến nội dung thông tin số xâm phạm đó ngay khi phát hiện hoặc nhận được thông báo bằng văn bản từ chủ thể quyền hoặc cơ quan nhà nước có thẩm quyền xác minh vi phạm.\n      - Trường hợp các bên có thỏa thuận riêng: Doanh nghiệp trung gian và chủ thể quyền có thể thiết lập quy trình công cụ phối hợp tiếp nhận thông báo và phản hồi tự động riêng bằng văn bản hợp tác thương mại. Khi đó quy trình tạm gỡ bỏ và xử lý yêu cầu phản đối của người dùng sẽ được thực hiện theo quy trình thỏa thuận phối hợp riêng này, bảo đảm tuân thủ nguyên tắc bảo mật tài khoản người dùng theo pháp luật.",
@@ -792,9 +792,9 @@
     "question": "Tôi đang muốn tự ý cào (crawl) và trích xuất toàn bộ mã nguồn của một số phần mềm đã được các lập trình viên khác công bố công khai trên mạng để đưa vào tập dữ liệu huấn luyện cho mô hình trí tuệ nhân tạo phi thương mại của tôi mà không xin phép họ. Việc làm này của tôi có bị xem là xâm phạm bản quyền của họ không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art7_Kh5",
-      "134-2026-ND-CP_Art37a_Kh1",
-      "134-2026-ND-CP_Art37b_Kh2",
-      "134-2026-ND-CP_Art37c"
+      "134-2026-ND-CP_Art14_Kh2",
+      "134-2026-ND-CP_Art15",
+      "134-2026-ND-CP_Art13_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 134/2026/NĐ-CP quy định chi tiết về việc sử dụng văn bản và dữ liệu đối với hệ thống trí tuệ nhân tạo, hành vi của bạn được phân tách theo hai trường hợp pháp lý rõ rệt:\n      - Trường hợp mặc định theo quy định của pháp luật: Khoản 5 Điều 7 Luật Sở hữu trí tuệ và Điều 37a Nghị định số 134/2026/NĐ-CP cho phép tổ chức, cá nhân được quyền tự do sử dụng văn bản và dữ liệu về đối tượng sở hữu trí tuệ đã công bố hợp pháp để huấn luyện hệ thống trí tuệ nhân tạo cho mục đích nghiên cứu khoa học, thử nghiệm phi thương mại mà không cần xin phép hay trả phí bồi hoàn, miễn là đáp ứng đầy đủ điều kiện: (1) Nguồn dữ liệu tiếp cận thông qua hành vi hợp pháp; (2) Không hủy bỏ hay làm vô hiệu hóa các biện pháp công nghệ bảo vệ quyền của chủ sở hữu; (3) Việc sử dụng không gây phương hại hay ảnh hưởng bất hợp lý đến lợi ích hợp pháp của tác giả; và (4) Kết quả đầu ra của hệ thống AI không thay thế thị trường tiêu thụ của phần mềm gốc.\n      - Trường hợp chủ sở hữu có thỏa thuận hoặc bảo lưu quyền (Opt-out): Căn cứ theo Điều 37b và Điều 37c Nghị định số 134/2026/NĐ-CP, tác giả và chủ sở hữu quyền tác giả có quyền tuyệt đối trong việc tuyên bố bảo lưu quyền, không cho phép khai thác dữ liệu của mình phục vụ mục đích huấn luyện AI (thông qua việc gán nhãn siêu dữ liệu hiển thị rõ ràng, mã hóa hoặc các nhãn kỹ thuật mà máy có thể đọc được trên môi trường mạng).\n    Do đó, nếu lập trình viên sở hữu mã nguồn công khai đó chưa thiết lập bất kỳ biện pháp bảo lưu hay nhãn kỹ thuật ngăn chặn cào dữ liệu nào, hành vi cào mã nguồn phục vụ huấn luyện AI phi thương mại của bạn là hợp pháp. Ngược lại, nếu họ đã tuyên bố bảo lưu quyền rõ ràng bằng kỹ thuật, việc bạn tự ý cào mã nguồn mà không đạt được thỏa thuận bằng văn bản với họ là hành vi xâm phạm bản quyền.",
     "references": [
@@ -834,8 +834,8 @@
     "expected_behavior": "answer",
     "question": "Công ty tôi vừa viết xong một phần mềm quản lý kho bãi rất chuyên nghiệp. Tôi nghe nói phần mềm này sẽ được đăng ký bảo hộ quyền tác giả, nhưng tôi không rõ luật quy định phần mềm máy tính có thuộc danh mục các tác phẩm được bảo hộ quyền tác giả không và nó thuộc loại hình tác phẩm nào?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art14_Kh1",
-      "67-VBHN-VPQH_Art22_Kh1"
+      "67-VBHN-VPQH_Art22_Kh1",
+      "67-VBHN-VPQH_Art14_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Điểm m Khoản 1 Điều 14 và Khoản 1 Điều 22, chương trình máy tính của công ty bạn hoàn toàn thuộc đối tượng được bảo hộ quyền tác giả:\n      - Phân loại loại hình tác phẩm: Chương trình máy tính của bạn thuộc nhóm loại hình tác phẩm \"Chương trình máy tính, sưu tập dữ liệu\" quy định tại Điểm m Khoản 1 Điều 14.\n      - Cơ chế bảo hộ cụ thể: Khoản 1 Điều 22 làm rõ thêm rằng chương trình máy tính (phần mềm) sẽ được áp dụng cơ chế bảo hộ pháp lý tương đương và nghiêm ngặt giống như một tác phẩm văn học, bất kể chương trình máy tính đó được thể hiện dưới dạng mã nguồn (source code) hay mã máy (object code).\n    Vì vậy, phần mềm quản lý kho bãi do công ty bạn sáng tạo hoàn toàn đủ điều kiện đăng ký và được pháp luật tự động bảo hộ quyền tác giả với tư cách là tác phẩm chương trình máy tính theo cơ chế bảo hộ tác phẩm văn học.",
     "references": [
@@ -864,9 +864,9 @@
     "expected_behavior": "answer",
     "question": "Tôi tự nghĩ ra một thuật toán xử lý dữ liệu cực kỳ tối ưu và một ý tưởng kinh doanh ứng dụng hẹn hò rất mới lạ. Sau đó, một công ty đối thủ biết được đã tự viết code tạo ra một ứng dụng chạy đúng theo thuật toán và ý tưởng của tôi nhưng các dòng code của họ viết hoàn toàn khác biệt. Tôi có thể khởi kiện họ vi phạm bản quyền đối với thuật toán và ý tưởng này được không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art15_Kh3",
       "67-VBHN-VPQH_Art15_Kh4",
-      "67-VBHN-VPQH_Art22_Kh1"
+      "67-VBHN-VPQH_Art22_Kh1",
+      "67-VBHN-VPQH_Art15_Kh3"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 3, 4 Điều 15 và Khoản 1 Điều 22, bạn không thể khởi kiện đối thủ về hành vi vi phạm quyền tác giả đối với thuật toán và ý tưởng kinh doanh này vì những lý do pháp lý sau:\n      - Giới hạn phạm vi bảo hộ của quyền tác giả: Quyền tác giả đối với chương trình máy tính chỉ bảo hộ hình thức thể hiện bên ngoài của tác phẩm (các dòng mã nguồn, mã máy cụ thể được viết ra hoặc giao diện đồ họa hiển thị) chứ hoàn toàn không bảo hộ giải pháp kỹ thuật, quy trình hoạt động hay ý đồ kinh doanh ẩn chứa bên trong. Điều này được quy định tại Khoản 1 Điều 22.\n      - Các đối tượng bị loại trừ bảo hộ: Khoản 3 Điều 15 loại trừ quy trình, hệ thống, phương pháp hoạt động, khái niệm, nguyên lý, số liệu khỏi phạm vi bảo hộ quyền tác giả. Đồng thời, Khoản 4 Điều 15 quy định rõ ràng \"ý tưởng\" không thuộc phạm vi bảo hộ quyền tác giả. Thuật toán của bạn về bản chất là một quy trình/phương pháp xử lý logic dữ liệu, còn ý tưởng hẹn hò là một ý niệm kinh doanh chưa định hình cụ thể thành văn bản hay phần mềm.\n    Vì đối thủ tự viết mã nguồn mới hoàn toàn khác biệt, hình thức thể hiện mã nguồn của họ không xâm phạm hình thức thể hiện mã nguồn của bạn. Tuy nhiên, nếu thuật toán của bạn có tính ứng dụng công nghệ và đáp ứng tính mới, bạn có thể cân nhắc bảo hộ dưới dạng Sáng chế thuộc quyền sở hữu công nghiệp thay vì Quyền tác giả.",
     "references": [
@@ -954,8 +954,8 @@
     "expected_behavior": "answer",
     "question": "Tôi tự viết một tựa game cá nhân và đã đăng ký bản quyền dưới tên 'Super Hero'. Nay tôi ký hợp đồng chuyển nhượng toàn bộ quyền tài sản trò chơi này cho Công ty M. Phía công ty M muốn đổi tên trò chơi thành 'Hero Quest' để phù hợp với kế hoạch thương mại của họ. Tôi có được phép ký thỏa thuận cho phép họ đổi tên game này không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art19_Kh1",
-      "134-2026-ND-CP_Art16_Kh2"
+      "134-2026-ND-CP_Art16_Kh2",
+      "67-VBHN-VPQH_Art19_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 134/2026/NĐ-CP, việc chuyển nhượng và thay đổi tên trò chơi được điều chỉnh bởi hai nhánh trường hợp pháp lý rõ rệt:\n      - Trường hợp mặc định theo quy định của pháp luật: Đặt tên cho tác phẩm là quyền nhân thân thuộc về tác giả quy định tại Khoản 1 Điều 19 Luật Sở hữu trí tuệ. Theo nguyên tắc chung, quyền nhân thân (trừ quyền công bố) không được phép chuyển nhượng cùng quyền tài sản. Do đó, Công ty M không được tự ý đổi tên game nếu không có sự đồng ý của tác giả.\n      - Trường hợp các bên có thỏa thuận riêng bằng văn bản: Khoản 1 Điều 19 Luật Sở hữu trí tuệ quy định rõ tác giả có quyền chuyển quyền sử dụng quyền đặt tên tác phẩm cho tổ chức, cá nhân nhận chuyển nhượng quyền tài sản quy định tại Khoản 1 Điều 20 của Luật này. Đồng thời, Khoản 2 Điều 16 Nghị định số 134/2026/NĐ-CP cũng bổ sung quy định cho phép thay đổi tên tác phẩm khi có văn bản đồng ý của tác giả.\n    Như vậy, bạn hoàn toàn được phép ký kết một thỏa thuận bằng văn bản (có thể tích hợp trực tiếp làm một điều khoản trong hợp đồng chuyển nhượng quyền tài sản) cho phép Công ty M sử dụng quyền đặt tên và thay đổi tên trò chơi từ \"Super Hero\" thành \"Hero Quest\" để khai thác thương mại hợp pháp.",
     "references": [
@@ -1009,8 +1009,8 @@
     "expected_behavior": "answer",
     "question": "Tôi tự bỏ tiền túi mua máy tính cá nhân, tự thuê máy chủ thử nghiệm và tận dụng toàn bộ thời gian rảnh buổi tối tại nhà để viết một ứng dụng di động. Khi ứng dụng hoàn thành, sếp ở công ty tôi đang làm việc đòi ứng dụng đó phải thuộc sở hữu của công ty vì lý do tôi hiện là nhân viên chính thức của họ. Sếp tôi đòi hỏi như vậy có đúng luật không và ai mới là chủ sở hữu quyền tác giả thực sự của ứng dụng?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art37",
-      "67-VBHN-VPQH_Art39_Kh1"
+      "67-VBHN-VPQH_Art39_Kh1",
+      "67-VBHN-VPQH_Art37"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Điều 37 và Điều 39, sếp của bạn đòi hỏi như vậy là hoàn toàn sai luật. Bạn chính là chủ sở hữu quyền tác giả duy nhất và thực sự đối với ứng dụng di động đó.Mối quan hệ sở hữu được phân định cụ thể qua các căn cứ pháp lý sau:\n      - Nguyên tắc xác lập quyền sở hữu của tác giả: Theo Điều 37, tác giả sử dụng thời gian, tài chính, cơ sở vật chất - kỹ thuật của chính mình để sáng tạo ra tác phẩm thì sẽ có toàn bộ các quyền nhân thân quy định tại Điều 19 và các quyền tài sản quy định tại Điều 20 của Luật này.\n      - Ranh giới công việc sáng tạo theo nhiệm vụ giao việc: Theo Khoản 1 Điều 39, doanh nghiệp chỉ có quyền sở hữu đối với các tác phẩm do nhân viên sáng tạo ra khi tác phẩm đó được thực hiện theo đúng \"nhiệm vụ giao việc\" (thuộc mô tả công việc lao động) hoặc dưới hình thức giao kế hoạch bằng văn bản của công ty.\n    Do bạn tự đầu tư tài chính mua máy tính, tự bỏ chi phí thuê máy chủ thử nghiệm và hoàn toàn tận dụng thời gian rảnh rỗi buổi tối tại nhà (không sử dụng bất kỳ nguồn lực, giờ làm việc hay cơ sở vật chất nào của doanh nghiệp), nên ứng dụng này hoàn toàn tách biệt khỏi nhiệm vụ lao động thông thường. Do đó, công ty không có bất kỳ quyền sở hữu hay quyền tài sản nào đối với phần mềm cá nhân này của bạn.",
     "references": [
@@ -1040,8 +1040,8 @@
     "question": "Tôi và một đồng nghiệp cùng nhau góp công sức, sử dụng máy tính cá nhân của mỗi người để viết chung một chương trình bảo mật hệ thống mà phần code của cả hai đan xen chặt chẽ không thể bóc tách ra để chạy độc lập được. Nay có một doanh nghiệp muốn mua lại phần mềm này, nhưng người đồng nghiệp của tôi nhất quyết không chịu bán còn tôi thì rất muốn bán. Tôi có được quyền tự ý ký hợp đồng chuyển nhượng phần mềm này cho doanh nghiệp không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art12a_Kh3",
-      "67-VBHN-VPQH_Art38_Kh1",
-      "17-2023-ND-CP_Art16_Kh1"
+      "17-2023-ND-CP_Art16_Kh1",
+      "67-VBHN-VPQH_Art38_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) and Nghị định số 17/2023/NĐ-CP, bạn tuyệt đối không được quyền tự ý ký kết hợp đồng chuyển nhượng phần mềm này cho doanh nghiệp khi chưa đạt được sự đồng thuận của đồng nghiệp:Quy chế sở hữu chung đối với tác phẩm đồng tác giả được làm rõ qua các nhánh trường hợp pháp lý sau:\n      - Trường hợp mặc định theo quy định của pháp luật: Căn cứ Khoản 3 Điều 12a, Khoản 1 Điều 38 Luật Sở hữu trí tuệ và Khoản 1 Điều 16 Nghị định số 17/2023/NĐ-CP, đối với tác phẩm do các đồng tác giả cùng chung công sức sáng tạo mà phần đóng góp của mỗi người đan xen chặt chẽ không thể bóc tách để sử dụng độc lập, các đồng tác giả là đồng chủ sở hữu đối với tác phẩm. Việc thực hiện định đoạt quyền tài sản (chuyển nhượng, mua bán phần mềm) bắt buộc phải có sự thỏa thuận và thống nhất ý chí của tất cả các đồng tác giả.\n      - Trường hợp tác phẩm có phần bóc tách riêng biệt độc lập: Chỉ trong trường hợp tác phẩm của các đồng tác giả có phần riêng biệt có thể tách ra sử dụng độc lập mà không gây phương hại đến phần của các đồng tác giả khác (Khoản 2 Điều 38), thì đồng tác giả mới có quyền tự định đoạt, bán phần riêng biệt đó mà không cần sự đồng ý của các bên còn lại.\n    Vì phần code bảo mật của bạn và đồng nghiệp đan xen chặt chẽ không thể bóc tách sử dụng độc lập, tác phẩm của bạn thuộc trường hợp mặc định bắt buộc phải có sự đồng thuận chung. Do đó, việc bạn tự ý bán phần mềm khi đồng nghiệp phản đối là hành vi vi phạm pháp luật và hợp đồng chuyển nhượng đó sẽ bị coi là vô hiệu.",
     "references": [
@@ -1251,8 +1251,8 @@
     "expected_behavior": "answer",
     "question": "Tôi tự lập trình ra một ứng dụng chụp ảnh rất hot và đang thương thảo bán bản quyền cho công ty K. Công ty K đồng ý mua đứt quyền tài sản với giá rất cao nhưng kèm điều khoản buộc tôi phải chuyển nhượng vĩnh viễn quyền đứng tên tác giả trên ứng dụng sang cho Giám đốc của họ. Tôi có được phép ký hợp đồng đồng ý chuyển nhượng quyền đứng tên tác giả này cho họ không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art19_Kh2",
-      "67-VBHN-VPQH_Art45_Kh2"
+      "67-VBHN-VPQH_Art45_Kh2",
+      "67-VBHN-VPQH_Art19_Kh2"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 2 Điều 19 và Khoản 2 Điều 45, bạn tuyệt đối không được phép ký hợp đồng chuyển nhượng quyền đứng tên tác giả này cho Giám đốc công ty K.Quy định cấm chuyển nhượng quyền nhân thân được làm rõ qua các quy định pháp luật sau:\n      - Tính chất không thể chuyển giao của quyền đứng tên: Theo Khoản 2 Điều 19, quyền được đứng tên thật hoặc bút danh trên tác phẩm; được nêu tên thật hoặc bút danh khi tác phẩm được công bố, sử dụng là quyền nhân thân gắn liền vĩnh viễn với cá nhân người trực tiếp sáng tạo ra phần mềm.\n      - Quy định cấm chuyển nhượng: Khoản 2 Điều 45 quy định rõ ràng tác giả không được chuyển nhượng các quyền nhân thân của mình cho bất kỳ tổ chức, cá nhân nào khác dưới mọi hình thức, ngoại trừ một quyền nhân thân duy nhất được phép chuyển nhượng là quyền công bố tác phẩm.\n    Do đó, dù công ty K đồng ý trả giá cao đến đâu thì điều khoản chuyển nhượng quyền đứng tên tác giả từ bạn sang Giám đốc của họ là hoàn toàn trái luật. Nếu bạn đặt bút ký hợp đồng có chứa điều khoản này, điều khoản đó mặc nhiên bị vô hiệu hoàn toàn về mặt pháp lý và bạn vẫn là tác giả đứng tên duy nhất của phần mềm.",
     "references": [
@@ -1312,8 +1312,8 @@
     "expected_behavior": "answer",
     "question": "Tôi là chủ sở hữu độc quyền một ứng dụng quản lý bán hàng. Giám đốc Công ty B có gặp tôi và hai bên đã thỏa thuận miệng đồng ý cho Công ty B thuê quyền sử dụng phần mềm này trong vòng 01 năm với mức phí là 50 triệu đồng. Sau khi tôi cài đặt hệ thống xong, công ty B sử dụng bình thường nhưng nay hết hạn họ từ chối thanh toán với lý do hai bên chưa ký kết bất kỳ hợp đồng bằng văn bản nào. Thỏa thuận miệng của chúng tôi có giá trị pháp lý bắt họ phải trả tiền không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art28_Kh1",
-      "67-VBHN-VPQH_Art48_Kh1"
+      "67-VBHN-VPQH_Art48_Kh1",
+      "67-VBHN-VPQH_Art28_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 1 Điều 48 và Điều 28, thỏa thuận thuê phần mềm được điều chỉnh dưới góc độ pháp lý như sau:\n      - Về tính chất hiệu lực hình thức hợp đồng: Theo Khoản 1 Điều 48, hợp đồng sử dụng quyền tác giả (hợp đồng cấp phép cho thuê phần mềm) bắt buộc phải được lập thành văn bản. Do đó, thỏa thuận miệng giữa bạn và Giám đốc Công ty B không đáp ứng yêu cầu bắt buộc về mặt hình thức của luật pháp sở hữu trí tuệ nên không có hiệu lực pháp lý để làm phát sinh quyền sử dụng phần mềm hợp pháp của họ.\n      - Về việc đòi tiền bồi hoàn và xử lý vi phạm: Mặc dù thỏa thuận miệng thuê quyền sử dụng bị coi là vô hiệu, nhưng việc Công ty B thực tế đã nhận cài đặt hệ thống và tiến hành khai thác, sử dụng phần mềm kế toán của bạn để phục vụ hoạt động kinh doanh mà hoàn toàn không có sự đồng ý bằng văn bản của chủ sở hữu bị coi là hành vi sử dụng phần mềm không phép, cấu thành hành vi xâm phạm quyền tài sản của chủ sở hữu quy định tại Điều 28 Luật Sở hữu trí tuệ.\n    Vì vậy, bạn hoàn toàn có quyền khởi kiện Công ty B ra Tòa án dựa trên quan hệ pháp luật về xâm phạm quyền sở hữu trí tuệ (sử dụng phần mềm không phép) để buộc Công ty B phải chấm dứt sử dụng ứng dụng, gỡ bỏ hệ thống và bồi thường bồi hoàn khoản tiền tương đương với giá trị sử dụng thực tế của phần mềm trong suốt 1 năm qua (ở mức 50 triệu đồng theo giá thị trường hoặc giá thỏa thuận).",
     "references": [
@@ -1366,8 +1366,8 @@
     "expected_behavior": "answer",
     "question": "Tôi phát hiện một lập trình viên khác đã tự ý lấy một module mã nguồn mở công khai của cộng đồng rồi đem đi nộp hồ sơ, khai báo gian lận thông tin để được cấp Giấy chứng nhận đăng ký quyền tác giả dưới tên cá nhân anh ta. Tôi có quyền làm đơn đề nghị cơ quan nhà nước hủy bỏ hiệu lực của Giấy chứng nhận đăng ký quyền tác giả mà họ đã cấp cho anh ta không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art55_Kh3",
-      "17-2023-ND-CP_Art42_Kh1"
+      "17-2023-ND-CP_Art42_Kh1",
+      "67-VBHN-VPQH_Art55_Kh3"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, bạn hoàn toàn có đầy đủ quyền làm đơn đề xuất và yêu cầu cơ quan nhà nước có thẩm quyền ra quyết định hủy bỏ hiệu lực của Giấy chứng nhận đăng ký quyền tác giả đã cấp sai quy định:Thẩm quyền và cơ sở hủy bỏ hiệu lực được quy định rõ:\n      - Căn cứ hủy bỏ do khai báo gian dối: Theo Khoản 3 Điều 55 Luật Sở hữu trí tuệ, cơ quan quản lý nhà nước về quyền tác giả, quyền liên quan sẽ quyết định hủy bỏ hiệu lực Giấy chứng nhận đăng ký quyền tác giả khi người nộp hồ sơ thực hiện hành vi khai không chính xác, không trung thực thông tin trong hồ sơ đăng ký.\n      - Quyền yêu cầu của bên thứ ba: Việc hủy bỏ hiệu lực được thực hiện trực tiếp trên cơ sở yêu cầu và cung cấp thông tin, chứng cứ chứng minh vi phạm của tổ chức, cá nhân khác (bên thứ ba) gửi đến, hoặc do chính cơ quan đăng ký tự rà soát phát hiện. Theo Khoản 1 Điều 42 Nghị định số 17/2023/NĐ-CP, cơ quan chuyên môn quản lý nhà nước về quyền tác giả của Bộ Văn hóa, Thể thao và Du lịch (Cục Bản quyền tác giả) là cơ quan có thẩm quyền xử lý và ra quyết định hủy bỏ hiệu lực này.\n    Vì vậy, bạn hãy tiến hành tập hợp các chứng cứ kỹ thuật chứng minh module mã nguồn đó thuộc về cộng đồng nguồn mở có trước thời điểm lập trình viên kia nộp đơn và làm đơn đề nghị hủy bỏ hiệu lực Giấy chứng nhận gửi trực tiếp đến Cục Bản quyền tác giả để được xem xét xử lý.",
     "references": [
@@ -1398,7 +1398,7 @@
     "question": "Tôi tự phát triển và sở hữu một phần mềm học tiếng Anh rất phổ biến. Vì không có thời gian và nhân lực để tự đi thu phí sử dụng từ hàng trăm trung tâm ngoại ngữ, tôi muốn ủy thác quyền khai thác cho một Tổ chức quản lý tập thể quyền tác giả tại Việt Nam. Tôi muốn hỏi theo luật thì tổ chức này sẽ thay mặt tôi thực hiện những hoạt động đại diện cốt lõi nào để thu tiền cho tôi?",
     "gold_ids": [
       "67-VBHN-VPQH_Art56_Kh2",
-      "17-2023-ND-CP_Art45_Kh1",
+      "17-2023-ND-CP_Art45",
       "134-2026-ND-CP_Art48"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP (được sửa đổi bởi Nghị định số 134/2026/NĐ-CP đổi tên Chương V thành Tổ chức quản lý tập thể), Tổ chức quản lý tập thể quyền tác giả (ví dụ như một hiệp hội bảo vệ bản quyền phần mềm) sau khi ký hợp đồng ủy quyền bằng văn bản với bạn sẽ thay mặt bạn thực hiện ba hoạt động cốt lõi sau để thực thi quyền khai thác thương mại:\n      - Thứ nhất, Thực hiện quản lý quyền tác giả đối với tác phẩm: Tổ chức sẽ đưa phần mềm học tiếng Anh của bạn vào danh mục tác phẩm quản lý tập thể của họ và tiến hành theo dõi, giám sát việc khai thác sử dụng của bên thứ ba trên thị trường.\n      - Thứ hai, Đàm phán và cấp phép sử dụng: Tổ chức thay mặt bạn làm việc, đàm phán trực tiếp với các trung tâm ngoại ngữ có nhu cầu sử dụng phần mềm để thống nhất các điều kiện khai thác và ký kết hợp đồng cấp phép sử dụng.\n      - Thứ ba, Thu và phân chia tiền bản quyền: Tổ chức thực hiện thu các khoản tiền phí bản quyền sử dụng phần mềm từ các trung tâm ngoại ngữ nộp về. Khoản tiền thu được phải lưu trữ riêng biệt tại tài khoản ngân hàng chuyên biệt và tổ chức có nghĩa vụ phân chia trả tiền bản quyền lại cho bạn theo định kỳ thỏa thuận, thời hạn không được chậm quá 6 tháng kể từ ngày thu được tiền (sau khi trừ đi một khoản chi phí quản lý vận hành theo tỷ lệ % thỏa thuận hợp lý quy định tại Điều 48 Nghị định 17/2023/NĐ-CP).",
@@ -1435,8 +1435,8 @@
     "expected_behavior": "answer",
     "question": "Công ty tôi kinh doanh dịch vụ Cloud Hosting. Gần đây, một khách hàng thuê server của chúng tôi đã tự ý tải lên và chia sẻ trái phép các bản crack phần mềm lậu của một hãng công nghệ lớn. Hãng công nghệ đó phát hiện và đòi công ty tôi phải bồi thường thiệt hại. Công ty tôi đã lập tức gỡ bỏ toàn bộ các file vi phạm ngay khi nhận được thông báo của hãng và chứng minh được trước đó chúng tôi hoàn toàn không biết khách hàng lưu trữ phần mềm vi phạm này. Công ty tôi có được miễn trừ trách nhiệm bồi thường không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art113_Kh1",
+      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art114"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, công ty cung cấp dịch vụ Cloud Hosting của bạn hoàn toàn được miễn trừ trách nhiệm bồi thường thiệt hại đối với hành vi xâm phạm quyền tác giả của khách hàng:Để được áp dụng cơ chế miễn trừ trách nhiệm pháp lý đối với chức năng lưu trữ thông tin số theo yêu cầu của người dùng, doanh nghiệp cung cấp dịch vụ trung gian (Hosting) phải đáp ứng đồng thời các điều kiện sau:\n      - Nhánh điều kiện về mặt nhận thức: Công ty hoàn toàn không biết nội dung thông tin số (các bản crack phần mềm) đó xâm phạm quyền tác giả của hãng công nghệ (điều này công ty bạn đã chứng minh được thực tế).\n      - Nhánh điều kiện về mặt hành động khắc phục nhanh chóng: Công ty phải thực hiện hành động nhanh chóng gỡ bỏ hoặc ngăn chặn việc truy cập đến các tệp tin xâm phạm ngay khi biết hoặc nhận được thông báo yêu cầu hợp lệ bằng văn bản của chủ thể quyền. Theo quy định chi tiết tại Điều 113 và Điều 114 Nghị định số 17/2023/NĐ-CP, thời hạn để doanh nghiệp tiến hành gỡ bỏ hoặc ngăn chặn truy cập là không chậm hơn 24 giờ kể từ khi nhận được yêu cầu hợp lệ để được miễn trừ trách nhiệm pháp lý.\n    Vì công ty của bạn đáp ứng hoàn hảo cả hai điều kiện (hoàn toàn không biết trước đó, và đã lập tức xử lý gỡ bỏ file crack ngay khi nhận thông báo), công ty bạn được bảo vệ bởi tấm khiên miễn trừ trách nhiệm pháp lý trung gian và không phải thực hiện nghĩa vụ bồi thường thiệt hại cho hãng công nghệ đó.",
@@ -1472,8 +1472,8 @@
     "expected_behavior": "answer",
     "question": "Điều 22 Luật Sở hữu trí tuệ quy định nội dung gì?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art22_Kh1",
       "67-VBHN-VPQH_Art22_Kh2",
+      "67-VBHN-VPQH_Art22_Kh1",
       "17-2023-ND-CP_Art12_Kh3"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Điều 22 Luật Sở hữu trí tuệ và Điều 12 Nghị định số 17/2023/NĐ-CP, Điều 22 quy định về quyền tác giả đối với chương trình máy tính và sưu tập dữ liệu.Về cơ chế khai thác và sửa chữa chương trình máy tính, pháp luật phân tách thành hai trường hợp rõ rệt:\n      - Trường hợp mặc định theo quy định pháp luật: Tổ chức, cá nhân có quyền sử dụng hợp pháp bản sao chương trình máy tính được tự làm duy nhất một bản sao dự phòng để thay thế khi bản chính bị xóa hoặc bị hỏng, và được phép tự sửa lỗi trên bản sao đó để phục vụ việc sử dụng thông thường mà không cần xin phép hay trả phí cho chủ sở hữu, trừ trường hợp có thỏa thuận khác.\n      - Trường hợp các bên có thỏa thuận riêng bằng văn bản: Tác giả và chủ sở hữu quyền tác giả chương trình máy tính có quyền thỏa thuận với người sử dụng về việc sửa chữa, nâng cấp chương trình máy tính cũng như quy định các điều kiện ràng buộc kỹ thuật khác thông qua hợp đồng sử dụng quyền tác giả bằng văn bản.\n    Đối với sưu tập dữ liệu, đây là tập hợp có tính sáng tạo thể hiện ở sự tuyển chọn, sắp xếp các tư liệu dưới dạng điện tử hoặc dạng khác. Việc bảo hộ quyền tác giả đối với sưu tập dữ liệu không bao hàm chính các tư liệu đó và không gây phương hại đến quyền tác giả của chính tư liệu đó.",
@@ -1509,9 +1509,9 @@
     "expected_behavior": "answer",
     "question": "Điều 12a Luật Sở hữu trí tuệ quy định nội dung gì",
     "gold_ids": [
+      "67-VBHN-VPQH_Art12a_Kh3",
       "67-VBHN-VPQH_Art12a_Kh1",
-      "67-VBHN-VPQH_Art12a_Kh2",
-      "67-VBHN-VPQH_Art12a_Kh3"
+      "67-VBHN-VPQH_Art12a_Kh2"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Điều 12a, Điều luật quy định về tư cách pháp lý của tác giả và đồng tác giả đối với tác phẩm, cụ thể như sau:\n      - Tư cách tác giả và đồng tác giả: Tác giả là người trực tiếp sáng tạo tác phẩm. Trường hợp có từ hai người trở lên cùng trực tiếp sáng tạo tác phẩm với chủ ý là sự đóng góp của họ được kết hợp thành một tổng thể hoàn chỉnh thì những người đó là các đồng tác giả.\n      - Trường hợp loại trừ: Người hỗ trợ, góp ý kiến hoặc cung cấp tư liệu cho người khác sáng tạo tác phẩm không được công nhận là tác giả hay đồng tác giả.\n    Về cơ chế khai thác và định đoạt tác phẩm đồng tác giả, luật quy định rõ hai trường hợp:\n      - Trường hợp mặc định theo quy định pháp luật: Việc thực hiện các quyền nhân thân và quyền tài sản đối với tác phẩm đồng tác giả phải có sự thỏa thuận, thống nhất ý chí của tất cả các đồng tác giả. Trường hợp tác phẩm đồng tác giả có phần riêng biệt có thể tách ra sử dụng độc lập mà không làm phương hại đến phần của các đồng tác giả khác thì đồng tác giả có quyền định đoạt phần riêng biệt đó của mình, trừ trường hợp có thỏa thuận khác.\n      - Trường hợp các bên có thỏa thuận riêng bằng văn bản: Các đồng tác giả được tự do thỏa thuận về cách thức phân chia lợi nhuận, khai thác quyền tài sản, quản lý quyền nhân thân hoặc chuyển nhượng quyền sử dụng tác phẩm bằng văn bản thỏa thuận riêng phù hợp với quy định của pháp luật.",
     "references": [
@@ -1546,13 +1546,13 @@
     "question": "Điều 28 Luật Sở hữu trí tuệ quy định nội dung gì?",
     "gold_ids": [
       "67-VBHN-VPQH_Art28_Kh1",
+      "67-VBHN-VPQH_Art28_Kh6",
       "67-VBHN-VPQH_Art28_Kh2",
+      "67-VBHN-VPQH_Art28_Kh5",
       "67-VBHN-VPQH_Art28_Kh3",
       "67-VBHN-VPQH_Art28_Kh4",
-      "67-VBHN-VPQH_Art28_Kh5",
-      "67-VBHN-VPQH_Art28_Kh6",
-      "67-VBHN-VPQH_Art28_Kh7",
-      "67-VBHN-VPQH_Art28_Kh8"
+      "67-VBHN-VPQH_Art28_Kh8",
+      "67-VBHN-VPQH_Art28_Kh7"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Điều 28, Điều luật quy định chi tiết về các hành vi bị coi là xâm phạm quyền tác giả. Nội dung của Điều 28 bao gồm các nhóm hành vi vi phạm chính sau đây:\n      - Xâm phạm các quyền nhân thân: Trực tiếp xâm phạm các quyền nhân thân của tác giả quy định tại Điều 19 (mạo danh tác giả, tự ý công bố tác phẩm, xuyên tạc, sửa đổi, cắt xén tác phẩm gây phương hại đến danh dự và uy tín của tác giả).\n      - Xâm phạm các quyền tài sản: Xâm phạm quyền tài sản quy định tại Điều 20 (tự ý sao chép, phân phối, truyền đạt, làm tác phẩm phái sinh hoặc cho thuê thương mại tác phẩm mà không được phép của chủ sở hữu).\n      - Vi phạm nghĩa vụ ngoại lệ: Không thực hiện hoặc thực hiện không đầy đủ các nghĩa vụ pháp lý quy định tại các trường hợp ngoại lệ không xâm phạm quyền tác giả (Điều 25, Điều 25a và Điều 26).\n      - Xâm phạm bằng công nghệ: Cố ý hủy bỏ hoặc làm vô hiệu biện pháp công nghệ hữu hiệu do chủ sở hữu thực hiện; sản xuất, phân phối, nhập khẩu, chào bán hoặc tàng trữ nhằm mục đích thương mại các thiết bị/linh kiện nhằm vô hiệu hóa biện pháp công nghệ bảo vệ quyền.\n      - Xâm phạm thông tin quản lý quyền (RMI): Cố ý xóa, gỡ bỏ, thay đổi thông tin quản lý quyền mà không được phép; cố ý phân phối, nhập khẩu, phát sóng, truyền đạt bản sao tác phẩm khi biết thông tin quản lý quyền đã bị thay đổi, gỡ bỏ trái phép.\n      - Trách nhiệm của doanh nghiệp trung gian: Doanh nghiệp cung cấp dịch vụ trung gian không thực hiện hoặc thực hiện không đầy đủ các quy trình, trách nhiệm kỹ thuật để được miễn trừ trách nhiệm pháp lý đối với hành vi xâm phạm của người dùng quy định tại Khoản 3 Điều 198b.",
     "references": [
@@ -1611,9 +1611,9 @@
     "expected_behavior": "answer",
     "question": "Điều 213 Luật Sở hữu trí tuệ quy định nội dung gì?",
     "gold_ids": [
+      "67-VBHN-VPQH_Art213_Kh3",
       "67-VBHN-VPQH_Art213_Kh1",
       "67-VBHN-VPQH_Art213_Kh2",
-      "67-VBHN-VPQH_Art213_Kh3",
       "67-VBHN-VPQH_Art213_Kh4"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Điều 213, Điều luật quy định định nghĩa pháp lý về hàng hóa giả mạo sở hữu trí tuệ, bao gồm ba nhóm hàng hóa chính sau:\n      - Hàng hóa giả mạo nhãn hiệu: Hàng hóa hoặc bao bì của hàng hóa có gắn nhãn hiệu, dấu hiệu trùng hoặc tương tự đến mức khó phân biệt với nhãn hiệu đang được bảo hộ cho chính mặt hàng đó mà không được phép của chủ sở hữu nhãn hiệu.\n      - Hàng hóa giả mạo chỉ dẫn địa lý: Hàng hóa hoặc bao bì của hàng hóa có gắn chỉ dẫn địa lý, dấu hiệu trùng hoặc tương tự đến mức khó phân biệt với chỉ dẫn địa lý đang được bảo hộ cho chính mặt hàng đó mà việc gắn dấu hiệu này do chủ thể không có quyền sử dụng thực hiện.\n      - Hàng hóa sao chép lậu: Bản sao của tác phẩm (bao gồm cả chương trình máy tính) được sản xuất mà không được phép của chủ sở hữu quyền tác giả hoặc chủ sở hữu quyền liên quan.",
@@ -1653,12 +1653,12 @@
     "expected_behavior": "answer",
     "question": "Điều 15 Luật Sở hữu trí tuệ quy định nội dung gì?",
     "gold_ids": [
+      "67-VBHN-VPQH_Art15_Kh3",
       "67-VBHN-VPQH_Art15_Kh1",
       "67-VBHN-VPQH_Art15_Kh2",
-      "67-VBHN-VPQH_Art15_Kh3",
-      "67-VBHN-VPQH_Art15_Kh4",
+      "134-2026-ND-CP_Art6_Kh8",
       "17-2023-ND-CP_Art6_Kh3",
-      "134-2026-ND-CP_Art6_Kh8"
+      "67-VBHN-VPQH_Art15_Kh4"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và các Nghị định hướng dẫn thi hành (Nghị định 17/2023/NĐ-CP và Nghị định 134/2026/NĐ-CP), cụ thể tại Điều 15 Luật Sở hữu trí tuệ và Điều 6 Nghị định số 17/2023/NĐ-CP, Điều 15 quy định cụ thể về các đối tượng không thuộc phạm vi bảo hộ quyền tác giả, bao gồm bốn nhóm đối tượng sau:\n      - Tin tức thời sự thuần túy đưa tin: Là các thông tin báo chí ngắn, hàng ngày, chỉ mang tính chất đưa tin, không có tính sáng tạo của tác giả.\n      - Văn bản hành chính và pháp lý: Các văn bản quy phạm pháp luật, văn bản hành chính, văn bản khác thuộc lĩnh vực tư pháp và bản dịch chính thức của các văn bản đó.\n      - Quy trình và nguyên lý: Các quy trình (trình tự công việc phải tuân theo), hệ thống (tập hợp các yếu tố có quan hệ chặt chẽ), phương pháp hoạt động (cách thức nghiên cứu, nhìn nhận), khái niệm, nguyên lý, số liệu.\n      - Ý tưởng và khẩu hiệu: Các ý tưởng (suy nghĩ, dự định, phương hướng sáng tạo chưa được định hình rõ ràng); khẩu hiệu (cụm từ ngắn gọn mang tính quảng bá); tên tác phẩm một cách độc lập (tên gọi khi đứng tách rời khỏi nội dung tác phẩm).",
     "references": [
@@ -1709,10 +1709,10 @@
     "expected_behavior": "answer",
     "question": "Điều 38 Luật Sở hữu trí tuệ quy định nội dung gì?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art38_Kh1",
-      "67-VBHN-VPQH_Art38_Kh2",
+      "17-2023-ND-CP_Art16_Kh2",
       "17-2023-ND-CP_Art16_Kh1",
-      "17-2023-ND-CP_Art16_Kh2"
+      "67-VBHN-VPQH_Art38_Kh2",
+      "67-VBHN-VPQH_Art38_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Điều 38 Luật Sở hữu trí tuệ và Điều 16 Nghị định số 17/2023/NĐ-CP, Điều 38 quy định về chủ sở hữu quyền tác giả đối với tác phẩm do các đồng tác giả cùng sáng tạo.Về việc quản lý, khai thác và phân định quyền sở hữu đối với tác phẩm đồng tác giả, pháp luật quy định hai trường hợp cụ thể:\n      - Trường hợp mặc định theo quy định pháp luật:\n          - Nếu các đồng tác giả sử dụng thời gian, tài chính, cơ sở vật chất - kỹ thuật chung để cùng sáng tạo ra tác phẩm mà không thể tách rời phần đóng góp để sử dụng độc lập (Khoản 1): Các đồng tác giả là đồng chủ sở hữu, cùng chung các quyền nhân thân (Điều 19) và quyền tài sản (Điều 20) đối với tác phẩm đó. Việc thực hiện các quyền này bắt buộc phải có sự thỏa thuận, thống nhất ý chí của tất cả các đồng tác giả.\n          - Nếu tác phẩm đồng tác giả có phần riêng biệt có thể tách ra sử dụng độc lập mà không làm phương hại đến phần của các đồng tác giả khác (Khoản 2): Các đồng tác giả có các quyền nhân thân và quyền tài sản đối với phần riêng biệt do mình sáng tạo ra.\n      - Trường hợp các bên có thỏa thuận riêng bằng văn bản: Các đồng tác giả được quyền tự do thỏa thuận bằng văn bản về cơ chế thực hiện quyền nhân thân và quyền tài sản đối với toàn bộ tác phẩm hoặc từng phần tách biệt. Trong trường hợp đồng tác giả không đồng thời là đồng chủ sở hữu, các tác giả thỏa thuận về việc thực hiện quyền nhân thân, còn các chủ sở hữu thỏa thuận về việc thực hiện quyền tài sản bằng văn bản hợp đồng cụ thể.",
     "references": [
@@ -1753,9 +1753,9 @@
     "question": "Khoản 5 Điều 7 Luật Sở hữu trí tuệ quy định cụ thể những gì?",
     "gold_ids": [
       "67-VBHN-VPQH_Art7_Kh5",
-      "134-2026-ND-CP_Art37a_Kh1",
-      "134-2026-ND-CP_Art37b_Kh2",
-      "134-2026-ND-CP_Art37c"
+      "134-2026-ND-CP_Art14_Kh2",
+      "134-2026-ND-CP_Art15",
+      "134-2026-ND-CP_Art13_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 134/2026/NĐ-CP, cụ thể tại Khoản 5 Điều 7 Luật Sở hữu trí tuệ và các Điều 37a, 37b, 37c Nghị định số 134/2026/NĐ-CP, pháp luật quy định về quyền khai thác dữ liệu và văn bản phục vụ cho huấn luyện trí tuệ nhân tạo (AI).Về cơ chế khai thác và sử dụng dữ liệu huấn luyện AI, pháp luật phân chia rõ ràng thành hai trường hợp rõ rệt:\n      - Trường hợp mặc định theo quy định pháp luật (Khai thác tự do): Tổ chức, cá nhân được quyền tự do sử dụng văn bản và dữ liệu về đối tượng quyền sở hữu trí tuệ đã được công bố hợp pháp và công chúng được phép tiếp cận để phục vụ mục đích nghiên cứu khoa học, thử nghiệm, huấn luyện hệ thống trí tuệ nhân tạo (AI) mà không cần xin phép hay trả phí cho chủ sở hữu, với điều kiện việc sử dụng này không ảnh hưởng bất hợp lý đến việc khai thác bình thường tác phẩm và lợi ích hợp pháp của tác giả, chủ sở hữu. Đồng thời, kết quả đầu ra của hệ thống AI không được thay thế thị trường tiêu thụ của tác phẩm gốc và không tạo ra việc cạnh tranh không lành mạnh.\n      - Trường hợp các bên có thỏa thuận riêng bằng văn bản (Quyền bảo lưu - Opt-out): Tác giả, người biểu diễn, chủ sở hữu quyền tác giả có quyền bảo lưu quyền của mình (không cho phép AI cào dữ liệu) bằng cách gắn nhãn hiển thị, đánh dấu kỹ thuật máy đọc được trong siêu dữ liệu tác phẩm, hoặc công bố công khai trên trang thông tin điện tử của tổ chức quản lý tập thể. Trong trường hợp chủ sở hữu đã thực hiện quyền bảo lưu hợp pháp, mọi hành vi cào dữ liệu, sử dụng văn bản và dữ liệu của tác phẩm để huấn luyện hệ thống AI bắt buộc phải có sự thỏa thuận và đồng ý bằng văn bản của chủ sở hữu.\n    Ngoài ra, tổ chức, cá nhân sử dụng dữ liệu để huấn luyện AI phải lưu giữ hồ sơ kỹ thuật, dữ liệu huấn luyện để sẵn sàng cung cấp cho cơ quan chức năng khi có yêu cầu phục vụ giải quyết tranh chấp. Nếu khai thác thương mại hệ thống AI có sử dụng dữ liệu này thì phải thực hiện nghĩa vụ trả tiền bản quyền kể từ khi sử dụng theo quy định của pháp luật.",
     "references": [
@@ -1867,10 +1867,10 @@
     "expected_behavior": "answer",
     "question": "Hồ sơ đăng ký quyền tác giả đối với chương trình máy tính bắt buộc phải bao gồm những tài liệu chủ yếu nào theo quy định pháp luật?",
     "gold_ids": [
+      "134-2026-ND-CP_Art21_Kh4",
       "67-VBHN-VPQH_Art50_Kh2",
-      "134-2026-ND-CP_Art39a_Kh1",
-      "134-2026-ND-CP_Art39a_Kh2",
-      "134-2026-ND-CP_Art43_Kh4"
+      "134-2026-ND-CP_Art18_Kh2",
+      "134-2026-ND-CP_Art18_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 134/2026/NĐ-CP, cụ thể tại Khoản 2 Điều 50 Luật Sở hữu trí tuệ và Điều 39a, Điều 43 Nghị định số 134/2026/NĐ-CP, hồ sơ đề nghị cấp Giấy chứng nhận đăng ký quyền tác giả đối với chương trình máy tính bắt buộc phải bao gồm các tài liệu cốt lõi sau đây:\n      - Tờ khai đề nghị cấp Giấy chứng nhận: Tờ khai (theo mẫu do Bộ Văn hóa, Thể thao và Du lịch quy định) được làm bằng tiếng Việt, do chính tác giả hoặc chủ sở hữu quyền tác giả ký tên hoặc điểm chỉ, chứa đầy đủ thông tin về tác giả, chủ sở hữu, tóm tắt nội dung và cam đoan chịu trách nhiệm pháp lý.\n      - Bản sao tác phẩm chương trình máy tính:\n          - Bản điện tử chứa mã nguồn (code) và giao diện của chương trình máy tính có thể cài đặt để chạy được.\n          - Bản in trên khổ giấy A4 chứa giao diện và mã code của chương trình máy tính đó. Trường hợp phần in mã code dài từ 100 trang trở lên thì chỉ cần in 25 trang đầu, 25 trang giữa và 25 trang cuối của mã code.\n          - Đặc biệt đối với phần mềm trò chơi (game): Bắt buộc phải nộp kèm theo kịch bản trò chơi.\n      - Văn bản ủy quyền: Trường hợp nộp hồ sơ thông qua ủy quyền (phải được chứng thực đối với cá nhân).\n      - Tài liệu chứng minh quyền sở hữu: Quyết định giao nhiệm vụ/xác nhận giao nhiệm vụ (nếu giao việc cho nhân viên); Hợp đồng sáng tạo (nếu thuê viết phần mềm); Văn bản thừa kế hoặc hợp đồng chuyển nhượng quyền tài sản hợp pháp.\n      - Văn bản cam đoan: Văn bản cam đoan của tác giả về việc tự sáng tạo tác phẩm, không sao chép hay vi phạm pháp luật.\n      - Tài liệu đặc thù về AI: Trường hợp có sử dụng hệ thống trí tuệ nhân tạo để hỗ trợ sáng tạo phần mềm, bắt buộc phải nộp kèm văn bản cam đoan của người trực tiếp sáng tạo và văn bản mô tả cụ thể cách thức sử dụng hệ thống AI trong quá trình lập trình.",
     "references": [
@@ -1994,10 +1994,10 @@
     "expected_behavior": "answer",
     "question": "Trách nhiệm pháp lý và nghĩa vụ phối hợp bảo vệ quyền tác giả trên không gian mạng của doanh nghiệp cung cấp dịch vụ trung gian được quy định ở điều nào?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art198b_Kh2",
       "17-2023-ND-CP_Art110_Kh3",
-      "17-2023-ND-CP_Art111_Kh3",
-      "134-2026-ND-CP_Art112"
+      "134-2026-ND-CP_Art32",
+      "67-VBHN-VPQH_Art198b_Kh2",
+      "17-2023-ND-CP_Art111_Kh3"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và các Nghị định hướng dẫn thi hành (Nghị định 17/2023/NĐ-CP sửa đổi bổ sung bởi Nghị định 134/2026/NĐ-CP), cụ thể tại Điều 198b Luật Sở hữu trí tuệ và các Điều 110, 111, 112 Nghị định quy định về trách nhiệm pháp lý của doanh nghiệp cung cấp dịch vụ trung gian trên không gian mạng. Theo đó, trách nhiệm và nghĩa vụ của doanh nghiệp cung cấp dịch vụ trung gian được quy định tại Điều 198b của Luật Sở hữu trí tuệ, cụ thể như sau:\n      - Nghĩa vụ phối hợp thực thi bảo vệ (Khoản 2 Điều 198b): Doanh nghiệp cung cấp dịch vụ trung gian có trách nhiệm phải triển khai các biện pháp kỹ thuật cần thiết, đồng thời chủ động phối hợp với các cơ quan quản lý nhà nước có thẩm quyền và các chủ thể quyền tác giả để thực thi các biện pháp ngăn chặn hành vi xâm phạm, bảo vệ quyền tác giả trên không gian mạng.\n      - Trách nhiệm của chủ quản nền tảng số trung gian (Khoản 3 Điều 112 Nghị định số 17/2023/NĐ-CP bổ sung bởi Nghị định 134/2026/NĐ-CP): Doanh nghiệp cung cấp dịch vụ trung gian, chủ quản nền tảng số trung gian (bao gồm cả mạng xã hội trực tuyến, nền tảng thương mại điện tử) có trách nhiệm ngăn chặn việc chia sẻ thông tin, xóa bỏ thông tin, gỡ bỏ dịch vụ, ứng dụng có nội dung vi phạm quyền tác giả và chịu các trách nhiệm liên quan theo quy định của pháp luật về an ninh mạng, thương mại điện tử.\n      - Cơ chế miễn trừ trách nhiệm pháp lý (Khoản 3 Điều 198b): Doanh nghiệp trung gian được miễn trừ trách nhiệm bồi thường bồi hoàn dân sự đối với hành vi xâm phạm của người dùng nếu đáp ứng đầy đủ điều kiện quy định cho từng loại hình dịch vụ: Chỉ thực hiện truyền dẫn thuần túy thông tin số (Điểm a); Chỉ lưu trữ thông tin tự động, tạm thời - lưu trữ đệm (Điểm b); Hoặc thực hiện lưu trữ nội dung thông tin số theo yêu cầu của người sử dụng với điều kiện không biết nội dung đó xâm phạm và chủ động gỡ bỏ/ngăn chặn truy cập nhanh chóng ngay khi phát hiện vi phạm (Điểm c).",
     "references": [
@@ -2093,9 +2093,9 @@
     "expected_behavior": "answer",
     "question": "Quyền cho thuê bản gốc hoặc bản sao chương trình máy tính của chủ sở hữu quyền tác giả được quy định cụ thể tại quy định nào?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art20_Kh1",
+      "17-2023-ND-CP_Art12_Kh5",
       "17-2023-ND-CP_Art12_Kh4",
-      "17-2023-ND-CP_Art12_Kh5"
+      "67-VBHN-VPQH_Art20_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Điểm e Khoản 1 Điều 20 Luật Sở hữu trí tuệ và Khoản 4, Khoản 5 Điều 12 Nghị định số 17/2023/NĐ-CP, quyền cho thuê bản gốc hoặc bản sao chương trình máy tính của chủ sở hữu quyền tác giả được quy định cụ thể tại Điều 20 Luật Sở hữu trí tuệ.Theo đó, chủ sở hữu quyền tác giả được độc quyền thực hiện hoặc cho phép người khác thực hiện việc cho thuê bản gốc hoặc bản sao chương trình máy tính nhằm mục đích thương mại để khai thác sử dụng có thời hạn.Tuy nhiên, pháp luật quy định một ngoại lệ loại trừ quan trọng:\n      - Ngoại lệ loại trừ: Quyền cho thuê thương mại độc quyền nêu trên sẽ không áp dụng trong trường hợp bản thân chương trình máy tính đó không phải là đối tượng chính, đối tượng chủ yếu của việc cho thuê (ví dụ: chương trình máy tính được cài đặt sẵn để gắn liền với việc vận hành bình thường của các loại phương tiện giao thông hoặc các máy móc, thiết bị kỹ thuật, đồ gia dụng khác).",
     "references": [
@@ -2130,8 +2130,8 @@
     "expected_behavior": "answer",
     "question": "Điều kiện để doanh nghiệp cung cấp dịch vụ trung gian được miễn trừ trách nhiệm pháp lý khi người dùng lưu trữ chương trình máy tính xâm phạm quyền tác giả được quy định như nào?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art113_Kh1",
+      "67-VBHN-VPQH_Art198b_Kh3",
       "17-2023-ND-CP_Art114"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Điểm c Khoản 3 Điều 198b Luật Sở hữu trí tuệ và Điều 113, Điều 114 Nghị định số 17/2023/NĐ-CP, điều kiện miễn trừ đối với dịch vụ lưu trữ thông tin số của người sử dụng theo yêu cầu (như dịch vụ Cloud Hosting, server lưu trữ mã nguồn) được quy định rõ như sau:Để được miễn trừ trách nhiệm pháp lý bồi thường thiệt hại dân sự, doanh nghiệp cung cấp dịch vụ trung gian hosting bắt buộc phải đáp ứng đồng thời hai điều kiện sau:\n      - Điều kiện 1 (Không biết vi phạm): Doanh nghiệp hoàn toàn không biết rằng nội dung thông tin số (mã nguồn/bản sao chương trình máy tính do người dùng tải lên) đó xâm phạm quyền tác giả, quyền liên quan.\n      - Điều kiện 2 (Hành động gỡ bỏ nhanh chóng trong vòng 24 giờ): Doanh nghiệp phải chủ động có hành động nhanh chóng gỡ bỏ hoặc ngăn chặn việc truy nhập đến nội dung thông tin số vi phạm đó ngay khi biết thông tin đó xâm phạm. Cụ thể, doanh nghiệp phải thực hiện gỡ bỏ hoặc ngăn chặn việc truy nhập tới nội dung thông tin số xâm phạm không chậm hơn 24 giờ kể từ khi nhận được yêu cầu hợp lệ bằng văn bản từ cơ quan nhà nước có thẩm quyền hoặc cơ quan chuyên môn quản lý nhà nước về quyền tác giả của Bộ Văn hóa, Thể thao và Du lịch.",
@@ -2191,8 +2191,8 @@
     "expected_behavior": "refuse",
     "question": "Hành vi bẻ khóa phần mềm thương mại rồi chia sẻ công khai lên mạng Internet bị phạt tiền hành chính tối đa bao nhiêu triệu đồng đối với cá nhân?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art28_Kh4",
       "17-2023-ND-CP_Art211_Kh1",
+      "67-VBHN-VPQH_Art28_Kh4",
       "134-2026-ND-CP_Art211"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 4 Điều 28 và Khoản 1 Điều 211, hành vi cố ý làm vô hiệu biện pháp công nghệ hữu hiệu do chủ sở hữu thực hiện để bảo vệ quyền tác giả đối với tác phẩm bị coi là hành vi xâm phạm quyền tác giả và sẽ bị xử phạt vi phạm hành chính.Tuy nhiên, hiện tại trong các điều khoản luật được tra cứu và các Nghị định quy định chi tiết kèm theo (Nghị định 17/2023/NĐ-CP và Nghị định 134/2026/NĐ-CP) chưa có quy định về số tiền phạt hành chính cụ thể cho hành vi này. Việc xử lý vi phạm hành chính, bao gồm mức phạt tiền tối đa và các hình thức xử phạt cụ thể đối với cá nhân, được quy định tại Nghị định của Chính phủ về xử phạt vi phạm hành chính trong lĩnh vực quyền tác giả, quyền liên quan hiện hành. Người dùng vui lòng tra cứu văn bản chuyên ngành nêu trên để có thông tin chi tiết về số tiền phạt cụ thể.",
@@ -2259,9 +2259,9 @@
     "expected_behavior": "refuse",
     "question": "Công ty sử dụng phần mềm kế toán không có bản quyền trong hoạt động kinh doanh thì có bị áp dụng biện pháp khắc phục hậu quả là buộc tiêu hủy thiết bị chứa phần mềm đó hay không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art214_Kh2",
-      "17-2023-ND-CP_Art84_Kh1",
-      "134-2026-ND-CP_Art84_Kh3"
+      "134-2026-ND-CP_Art24_Kh3",
+      "17-2023-ND-CP_Art84",
+      "67-VBHN-VPQH_Art214_Kh2"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP (được sửa đổi, bổ sung bởi Nghị định số 134/2026/NĐ-CP), cụ thể tại Điều 214 Luật Sở hữu trí tuệ và Điều 84 Nghị định quy định biện pháp buộc tiêu hủy đối với hàng hóa sao chép lậu. Theo đó, cơ quan có thẩm quyền xử lý xâm phạm sẽ quyết định áp dụng biện pháp buộc tiêu hủy đối với hàng hóa sao chép lậu (tức là bản sao phần mềm không phép) theo yêu cầu của chủ sở hữu quyền tác giả mà không được bồi hoàn dưới bất kỳ hình thức nào. Ngoài ra, cơ quan có thẩm quyền cũng có thể quyết định áp dụng biện pháp buộc phân phối hoặc đưa vào sử dụng không nhằm mục đích thương mại theo quy định tại Điều 83 của Nghị định nếu đáp ứng đủ điều kiện luật định.Tuy nhiên, hiện tại trong các điều khoản luật được tra cứu và các Nghị định thi hành kèm theo chưa có quy định trực tiếp về việc buộc tiêu hủy thiết bị phần cứng (như máy tính, máy chủ) chứa phần mềm vi phạm của doanh nghiệp. Để xác định thiết bị phần cứng có bị tịch thu, tiêu hủy hay chỉ bị buộc gỡ bỏ phần mềm vi phạm, người dùng cần tham khảo Nghị định quy định về xử phạt vi phạm hành chính trong lĩnh vực quyền tác giả, quyền liên quan hiện hành.",
     "references": [
@@ -2335,7 +2335,7 @@
     "expected_behavior": "refuse",
     "question": "Khi nộp hồ sơ đăng ký bản quyền phần mềm, tờ khai đăng ký quyền tác giả phải sử dụng mẫu biểu số mấy và do ai ban hành?",
     "gold_ids": [
-      "17-2023-ND-CP_Art38_Kh6a",
+      "17-2023-ND-CP_Art38_Kh6",
       "134-2026-ND-CP_Art38"
     ],
     "reference_answer": "Căn cứ theo quy định tại Nghị định số 17/2023/NĐ-CP (được sửa đổi, bổ sung bởi Nghị định số 134/2026/NĐ-CP), cụ thể tại Khoản 6a Điều 38, tờ khai đăng ký quyền tác giả, đăng ký quyền liên quan phải sử dụng mẫu tờ khai do Bộ trưởng Bộ Văn hóa, Thể thao và Du lịch quy định.Tuy nhiên, hiện tại trong các điều khoản của Nghị định 17/2023/NĐ-CP và Nghị định 134/2026/NĐ-CP (bao gồm cả danh mục Phụ lục III các mẫu biểu kèm theo) chỉ quy định các tờ khai chấp thuận sử dụng, dịch tác phẩm, sao chép tác phẩm, cấp thẻ giám định viên, mà không quy định cụ thể số hiệu mẫu biểu tờ khai đăng ký bản quyền quyền tác giả đối với chương trình máy tính. Để biết chính xác mã hiệu và tải về mẫu tờ khai đăng ký quyền tác giả, người dùng vui lòng tham khảo Thông tư quy định về các mẫu văn bản trong hoạt động đăng ký quyền tác giả, quyền liên quan do Bộ Văn hóa, Thể thao và Du lịch ban hành.",
@@ -2366,9 +2366,9 @@
     "expected_behavior": "refuse",
     "question": "Khi phát triển một chương trình máy tính thương mại có tích hợp các đoạn mã nguồn mở sử dụng giấy phép GPL (General Public License) phiên bản 3.0, doanh nghiệp có bắt buộc phải công khai toàn bộ mã nguồn của chương trình thương mại đó theo quy định của pháp luật sở hữu trí tuệ hay không?",
     "gold_ids": [
+      "17-2023-ND-CP_Art12_Kh2",
       "67-VBHN-VPQH_Art22_Kh1",
-      "17-2023-ND-CP_Art12_Kh1",
-      "17-2023-ND-CP_Art12_Kh2"
+      "17-2023-ND-CP_Art12_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Khoản 1 Điều 22 Luật Sở hữu trí tuệ và Điều 12 Nghị định số 17/2023/NĐ-CP, chương trình máy tính được bảo hộ như tác phẩm văn học, bất kể được thể hiện dưới dạng mã nguồn hay mã máy. Chủ sở hữu quyền tác giả có quyền độc quyền cho phép hoặc ngăn cấm người khác sao chép, phân phối hoặc dịch mã, chuyển đổi chương trình máy tính đó.\n\nVề cơ chế khai thác và thỏa thuận sử dụng phần mềm, pháp luật quy định hai trường hợp pháp lý rõ rệt:\n- Trường hợp mặc định theo quy định pháp luật: Tổ chức, cá nhân có quyền sử dụng hợp pháp bản sao chương trình máy tính được phép tự làm duy nhất một bản sao dự phòng để thay thế khi bản chính bị xóa hoặc bị hỏng, và được phép sửa lỗi trên bản sao đó để phục vụ việc sử dụng thông thường mà không cần xin phép hay trả phí cho chủ sở hữu, trừ trường hợp có thỏa thuận khác.\n- Trường hợp các bên có thỏa thuận riêng bằng văn bản: Các bên (bên chuyển giao quyền và bên sử dụng phần mềm) có quyền tự do thỏa thuận lập thành hợp đồng sử dụng quyền tác giả bằng văn bản để quy định chi tiết các điều kiện sử dụng, chuyển đổi giao diện, nâng cấp phần mềm, phạm vi sử dụng, cũng như các nghĩa vụ ràng buộc pháp lý liên quan.\n\nTuy nhiên, hiện tại trong các điều khoản luật được tra cứu và các Nghị định thi hành kèm theo (Nghị định 17/2023/NĐ-CP và Nghị định 134/2026/NĐ-CP) chưa có quy định chi tiết về tính tương thích, điều kiện ràng buộc kỹ thuật hay nghĩa vụ bắt buộc mở mã nguồn của phần mềm thương mại khi tích hợp mã nguồn mở sử dụng giấy phép GPL (General Public License) phiên bản 3.0. Giấy phép GPLv3 là một dạng hợp đồng dân sự tự nguyện giữa cộng đồng nhà phát triển và người sử dụng. Do đó, để xác định tính pháp lý và nghĩa vụ công khai mã nguồn của chương trình thương mại, người dùng vui lòng tra cứu nội dung chi tiết điều khoản cấp phép của giấy phép GPLv3 và tham khảo các quy định pháp luật dân sự về hợp đồng hiện hành.",
     "references": [
@@ -2428,7 +2428,7 @@
     "question": "Khung hình phạt tù tối đa đối với cá nhân phạm tội xâm phạm quyền tác giả chương trình máy tính có tổ chức quy định tại Bộ luật Hình sự là mấy năm?",
     "gold_ids": [
       "67-VBHN-VPQH_Art199_Kh1",
-      "67-VBHN-VPQH_Art212_Kh1"
+      "67-VBHN-VPQH_Art212"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH), cụ thể tại Khoản 1 Điều 199 và Điều 212, cá nhân có hành vi xâm phạm quyền sở hữu trí tuệ có đủ yếu tố cấu thành tội phạm thì bị xử lý bằng biện pháp hình sự theo quy định của pháp luật hình sự.\n\nTuy nhiên, hiện tại trong các điều khoản luật được tra cứu và các Nghị định thi hành kèm theo chưa có quy định về các khung hình phạt tù cụ thể hoặc các tình tiết tăng nặng trách nhiệm hình sự (như phạm tội có tổ chức) cho hành vi xâm phạm bản quyền phần mềm. Các mức hình phạt tù, hình phạt bổ sung và khung hình phạt chi tiết đối với tội danh này được quy định cụ thể tại Bộ luật Hình sự hiện hành. Người dùng vui lòng tham khảo Bộ luật Hình sự để biết khung hình phạt tối đa.",
     "references": [
@@ -2482,8 +2482,8 @@
     "question": "Cơ quan giám định về quyền tác giả phần mềm tại Việt Nam hiện nay có quyền đưa ra kết luận khẳng định một hành vi là xâm phạm quyền tác giả chương trình máy tính hay không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art201_Kh5",
-      "17-2023-ND-CP_Art92_Kh1",
-      "17-2023-ND-CP_Art92_Kh3"
+      "17-2023-ND-CP_Art92_Kh3",
+      "17-2023-ND-CP_Art92_Kh1"
     ],
     "reference_answer": "Căn cứ theo quy định của Luật Sở hữu trí tuệ (VBHN 67/VBHN-VPQH) và Nghị định số 17/2023/NĐ-CP, cụ thể tại Khoản 5 Điều 201 Luật Sở hữu trí tuệ và Điều 92 Nghị định số 17/2023/NĐ-CP, kết luận giám định về sở hữu trí tuệ là một trong các nguồn chứng cứ để cơ quan có thẩm quyền xử lý, giải quyết vụ việc. Tổ chức giám định sử dụng kiến thức, nghiệp vụ chuyên môn để đánh giá và kết luận về những vấn đề chuyên môn được yêu cầu, nhưng kết luận giám định hoàn toàn không kết luận về hành vi xâm phạm quyền sở hữu trí tuệ hoặc kết luận về vụ tranh chấp. Việc kết luận có hành vi xâm phạm hay không thuộc thẩm quyền phán quyết cuối cùng của tòa án hoặc cơ quan thực thi pháp luật xử lý xâm phạm.\n\nTuy nhiên, hiện tại trong các điều khoản luật được tra cứu và các Nghị định thi hành kèm theo chưa quy định chi tiết về giới hạn thẩm quyền tố tụng tư pháp cụ thể của tổ chức giám định chương trình máy tính khi tham gia các hoạt động tố tụng tư pháp. Để biết rõ hơn về thẩm quyền, trách nhiệm tố tụng của giám định viên tư pháp, người dùng vui lòng tham khảo thêm quy định tại Luật Giám định tư pháp hiện hành.",
     "references": [
@@ -2730,8 +2730,8 @@
     "expected_behavior": "refuse",
     "question": "Tôi có một ý tưởng rất hay về cách viết phần mềm quản lý kho bãi bằng blockchain nhưng chưa hề viết ra bất kỳ dòng code nào. Tôi có được pháp luật bảo hộ quyền tác giả đối với ý tưởng phần mềm này không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art6_Kh1",
-      "67-VBHN-VPQH_Art15_Kh4"
+      "67-VBHN-VPQH_Art15_Kh4",
+      "67-VBHN-VPQH_Art6_Kh1"
     ],
     "reference_answer": "Theo quy định tại Khoản 1 Điều 6 và Khoản 4 Điều 15 của Văn bản hợp nhất số 67/VBHN-VPQH, quyền tác giả chỉ phát sinh kể từ khi tác phẩm được sáng tạo và thể hiện dưới một hình thức vật chất nhất định (như bạn viết thành các dòng code, vẽ sơ đồ thiết kế hệ thống hay soạn thảo tài liệu mô tả tính năng), đồng thời luật cũng loại trừ \"ý tưởng\" ra khỏi phạm vi bảo hộ\nVì vậy, một ý tưởng dù rất hay nhưng nếu chỉ nằm trong suy nghĩ và chưa được định hình rõ ràng thì chưa có căn cứ để pháp luật bảo vệ. Bạn hãy thử đặt bút viết những dòng code đầu tiên hoặc phác thảo chi tiết sơ đồ vận hành cho ứng dụng blockchain của mình nhé, khi đó quyền tác giả sẽ tự động phát sinh để bảo vệ thành quả của bạn mà không bắt buộc phải đăng ký",
     "references": [
@@ -2760,8 +2760,8 @@
     "expected_behavior": "refuse",
     "question": "Công ty Techcom của chúng tôi đầu tư 100% kinh phí cho nhân viên viết phần mềm kế toán. Công ty có được đứng tên tại ô \"Tác giả\" trên Giấy chứng nhận đăng ký quyền tác giả chương trình máy tính này không?",
     "gold_ids": [
-      "67-VBHN-VPQH_Art12a_Kh1",
-      "67-VBHN-VPQH_Art39_Kh1"
+      "67-VBHN-VPQH_Art39_Kh1",
+      "67-VBHN-VPQH_Art12a_Kh1"
     ],
     "reference_answer": "Về mặt pháp lý thì Công ty Techcom chưa thể đứng tên ở ô \"Tác giả\" được. Theo quy định tại Khoản 1 Điều 12a và Khoản 1 Điều 39 của Văn bản hợp nhất số 67/VBHN-VPQH, tác giả bắt buộc phải là cá nhân trực tiếp sáng tạo ra tác phẩm, còn công ty đầu tư kinh phí chỉ được công nhận với tư cách là Chủ sở hữu quyền tác giả\nTuy nhiên, bạn hoàn toàn có thể yên tâm vì với tư cách là Chủ sở hữu quyền tác giả, Techcom sẽ nắm giữ toàn bộ các quyền tài sản (như quyền độc quyền khai thác thương mại, quyền công bố phần mềm và thu về 100% lợi nhuận)\nKhi thực hiện thủ tục, tên của nhân viên viết code sẽ được ghi nhận ở ô \"Tác giả\" để tôn trọng quyền nhân thân của họ, còn tên của Techcom sẽ nằm ở ô \"Chủ sở hữu\" để bảo vệ trọn vẹn quyền sở hữu và nguồn vốn đầu tư của công ty",
     "references": [

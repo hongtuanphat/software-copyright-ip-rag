@@ -27,54 +27,50 @@ setup_encoding()
 import config
 
 
-def execute_with_retry(func: Callable, max_retries: int = 3, fallback_prefix: str | None = None, *args: Any, **kwargs: Any) -> Any:
-    """Thực thi hàm có cơ chế retry tự động khi gặp lỗi 429 hoặc trả về fallback.
+
+_current_retry_count = 0
+
+def execute_with_retry(func: Callable, max_retries: int = 3, *args: Any, **kwargs: Any) -> Any:
+    """Thực thi hàm với retry cho lỗi API có thể phục hồi.
     
     Args:
         func: Hàm cần thực thi (vd: pipeline.query, generate, generate_no_rag)
         max_retries: Số lần thử tối đa
-        fallback_prefix: Chuỗi prefix nhận diện kết quả là fallback (vd: "[Chế độ Fallback")
     """
-    res = None
+    global _current_retry_count
     for attempt in range(1, max_retries + 1):
+        _current_retry_count = attempt - 1
         try:
-            res = func(*args, **kwargs)
-            
-            # Check if result is a string or object with fallback prefix
-            is_fallback = False
-            if fallback_prefix:
-                if isinstance(res, str) and res.startswith(fallback_prefix):
-                    is_fallback = True
-                elif hasattr(res, "answer") and isinstance(res.answer, str) and res.answer.startswith(fallback_prefix):
-                    is_fallback = True
-                    
-            if not is_fallback:
-                return res
-            
-            # Nếu là fallback do rate limit/lỗi, nhưng nếu attempt cuối thì vẫn phải return
-            if attempt < max_retries:
-                wait_sec = 20 * attempt
-                print(f"\n  [Cảnh báo] Trả về fallback (có thể 429). Chờ {wait_sec}s để hồi hạn ngạch (lần {attempt}/{max_retries})...")
-                time.sleep(wait_sec)
-                
+            return func(*args, **kwargs)
         except Exception as e:
             err_str = str(e).lower()
-            if "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str:
+            print(f"\n[Chi tiết lỗi lần {attempt}] {type(e).__name__}: {e}")
+            
+            if any(k in err_str for k in ["429", "resource_exhausted", "quota"]):
+                if attempt < max_retries:
+                    wait_sec = 10 * attempt
+                    import re
+                    match = re.search(r"retrydelay[\'\":\s]+(\d+)s?", err_str, re.IGNORECASE)
+                    if match:
+                        wait_sec = int(match.group(1)) + 2  # Thêm 2 giây đệm
+                    
+                    print(f"  -> [Cảnh báo Quota/Rate Limit 429] Đang luân phiên API Key và thử lại sau {wait_sec}s...")
+                    time.sleep(wait_sec)
+                    continue
+            elif any(k in err_str for k in ["500", "503", "504", "unavailable", "deadline", "timeout"]):
                 if attempt < max_retries:
                     wait_sec = 20 * attempt
-                    print(f"\n  [Cảnh báo 429] Đang chạm trần RPM. Chờ {wait_sec}s để hồi hạn ngạch (lần {attempt}/{max_retries})...")
+                    print(f"  -> [Cảnh báo Server Overload] Chờ {wait_sec}s để server Google phục hồi...")
                     time.sleep(wait_sec)
                     continue
             else:
-                if attempt < max_retries:
-                    print(f"\n  [Lỗi kết nối] {e}. Thử lại sau 5s...")
-                    time.sleep(5)
-                    continue
+                print(f"  -> [Lỗi Client/Hệ thống] Không retry cho loại lỗi này.")
+                raise Exception(f"Lỗi cứng từ client: {e}") from e
             
             if attempt == max_retries:
-                raise Exception(f"Không thể lấy phản hồi sau {max_retries} lần thử do lỗi: {e}")
+                raise Exception(f"Không thể lấy phản hồi sau {max_retries} lần thử do lỗi: {e}") from e
                 
-    return res
+    raise RuntimeError("Không thể hoàn tất lời gọi sau số lần retry cho phép.")
 
 
 def run_evaluation_experiment(
@@ -121,10 +117,43 @@ def run_evaluation_experiment(
 
     print(f"Bắt đầu chạy thử nghiệm {experiment_name} cho {len(questions)} câu hỏi...")
 
-    # Thay vì ghi đè, chúng ta sẽ nối tiếp (do tên file đã có timestamp độc nhất)
+    # Đọc các ID đã được xử lý thành công để hỗ trợ chạy tiếp (resume)
+    # Các record bị "error" sẽ không được đưa vào set này để chạy lại.
+    valid_records = {}
+    if output_path.exists():
+        with open(output_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        record = json.loads(line)
+                        q_id = record.get("request", {}).get("id")
+                        if q_id:
+                            # Luôn lấy bản ghi mới nhất (đề phòng file cũ đã có duplicate)
+                            valid_records[q_id] = record
+                    except Exception:
+                        pass
+
+    # Lọc bỏ các record lỗi 
+    valid_records = {k: v for k, v in valid_records.items() if v.get("response", {}).get("status") != "error"}
+    processed_ids = set(valid_records.keys())
+
+    if processed_ids:
+        print(f"Đã tìm thấy {len(processed_ids)} câu hỏi đã xử lý thành công. Các câu lỗi sẽ được chạy lại.")
+        # Ghi đè lại file chỉ với các record hợp lệ
+        with open(output_path, "w", encoding="utf-8") as f:
+            for rec in valid_records.values():
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    # Mở file ở chế độ ghi tiếp (a)
     with open(output_path, "a", encoding="utf-8") as out_f:
         for i, item in enumerate(questions, 1):
             q_id = item.get("id", str(i))
+            
+            # Bỏ qua nếu đã xử lý thành công rồi
+            if q_id in processed_ids:
+                print(f"[{i}/{len(questions)}] Bỏ qua câu {q_id} (đã xử lý trước đó).")
+                continue
+                
             q_text = item.get("question", "")
             q_group = item.get("group", "unknown")
             expected_behavior = item.get("expected_behavior", "answer")
@@ -132,74 +161,69 @@ def run_evaluation_experiment(
 
             print(f"[{i}/{len(questions)}] Đang xử lý {experiment_name} cho câu {q_id}: {q_text[:60]}...")
 
-            experiment_retries = 0
-            max_experiment_retries = 3
-            
-            while experiment_retries < max_experiment_retries:
-                start_time = time.perf_counter()
-                try:
-                    # Gọi hàm sinh kết quả cho câu hỏi
-                    result = process_func(q_text)
-                    
-                    latency_ms = (time.perf_counter() - start_time) * 1000.0
+            start_time = time.perf_counter()
+            try:
+                # Gọi hàm sinh kết quả cho câu hỏi
+                result = process_func(q_text)
+                
+                latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-                    record = {
-                        "request": {
-                            "id": q_id,
-                            "question": q_text,
-                            "group": q_group,
-                            "expected_behavior": expected_behavior,
-                            "gold_ids": gold_ids,
-                        },
-                        "response": {
-                            "answer": result.get("answer"),
-                            "retrieved_ids": result.get("retrieved_ids", []),
-                            "citations": result.get("citations", []),
-                            "refused": result.get("refused", False),
-                            "latency_ms": round(latency_ms, 2),
-                            "status": "success"
-                        }
+                record = {
+                    "request": {
+                        "id": q_id,
+                        "question": q_text,
+                        "group": q_group,
+                        "expected_behavior": expected_behavior,
+                        "gold_ids": gold_ids,
+                    },
+                    "response": {
+                        "answer": result.get("answer"),
+                        "raw_answer": result.get("raw_answer", result.get("answer")),
+                        "retrieved_ids": [h.get("provision_id") for h in result.get("retrieval_hits", [])],
+                        "used_citations": result.get("used_citations", []),
+                        "citation_candidates": result.get("retrieval_hits", []),
+                        "cited_documents": result.get("cited_documents", []),
+                        "refused": result.get("is_refused", False),
+                        "refusal_reason": result.get("refusal_reason", ""),
+                        "latency_ms": round(latency_ms, 2),
+                        "retry_count": _current_retry_count,
+                        "status": "success"
                     }
+                }
 
-                    # Ghi ngay xuống file
-                    out_f.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    out_f.flush()
+                # Ghi ngay xuống file
+                out_f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                out_f.flush()
 
-                    # Tránh Rate limit trước khi chạy câu tiếp theo
-                    time.sleep(delay_seconds)
-                    
-                    # Thành công thì thoát vòng lặp while để đi sang câu mới
-                    break
-                    
-                except Exception as e:
-                    experiment_retries += 1
-                    if experiment_retries >= max_experiment_retries:
-                        print(f"  -> [Lỗi cứng] Đã thử {max_experiment_retries} lần vẫn lỗi: {str(e)}. Ghi nhận lỗi và bỏ qua.")
-                        
-                        # Ghi error record để evaluation biết câu nào bị miss
-                        latency_ms = (time.perf_counter() - start_time) * 1000.0
-                        error_record = {
-                            "request": {
-                                "id": q_id,
-                                "question": q_text,
-                                "group": q_group,
-                                "expected_behavior": expected_behavior,
-                                "gold_ids": gold_ids,
-                            },
-                            "response": {
-                                "answer": None,
-                                "retrieved_ids": [],
-                                "citations": [],
-                                "refused": None,
-                                "latency_ms": round(latency_ms, 2),
-                                "status": "error",
-                                "error": str(e),
-                            }
-                        }
-                        out_f.write(json.dumps(error_record, ensure_ascii=False) + "\n")
-                        out_f.flush()
-                        break
-                    print(f"  -> [Lỗi] {str(e)}. Hệ thống sẽ chờ 10s và tự động thử lại (lần {experiment_retries}/{max_experiment_retries})...")
-                    time.sleep(10)
+            except Exception as e:
+                print(f"  -> [Lỗi] Đã thử hết số lần retry trong hệ thống nhưng vẫn thất bại: {str(e)}. Ghi nhận lỗi và bỏ qua.")
+                
+                # Ghi error record để evaluation biết câu nào bị miss
+                latency_ms = (time.perf_counter() - start_time) * 1000.0
+                error_record = {
+                    "request": {
+                        "id": q_id,
+                        "question": q_text,
+                        "group": q_group,
+                        "expected_behavior": expected_behavior,
+                        "gold_ids": gold_ids,
+                    },
+                    "response": {
+                        "answer": None,
+                        "retrieved_ids": [],
+                        "used_citations": [],
+                        "citation_candidates": [],
+                        "refused": None,
+                        "latency_ms": round(latency_ms, 2),
+                        "retry_count": _current_retry_count,
+                        "status": "error",
+                        "error": str(e),
+                    }
+                }
+                out_f.write(json.dumps(error_record, ensure_ascii=False) + "\n")
+                out_f.flush()
+            
+            finally:
+                time.sleep(delay_seconds)
 
     print(f"\nHoàn thành chạy {experiment_name}. Kết quả được lưu tại: {output_path}")

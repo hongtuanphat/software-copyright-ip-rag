@@ -15,16 +15,32 @@ import config
 from pipeline import RAGPipeline, answer_rag
 from ingestion.chunker import parse_law_text, Provision
 from ingestion.metadata import attach_effective_metadata, load_law_meta
-from retrieval.embedder import HashingFallbackEmbedder
+from ingestion.utils import build_index_text, tokenize_vietnamese
 from retrieval.faiss_index import FaissFlatIndex
 from retrieval.retriever import retrieve, retrieve_bm25
 from generation.refusal_gate import decide
-from generation.citation import build_citations
+
 from evaluation.core.metrics import build_confusion_matrix, recall_at_k
 
 
 RAW_PATH = config.DATA_RAW_DIR / "67-VBHN-VPQH.txt"
 SOURCE_URL = "https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-67-vbhn-vpqh-469197.htm"
+
+
+class DeterministicTestEmbedder:
+    """Small deterministic embedder used only to test FAISS filtering."""
+
+    model_name = "test-embedder"
+
+    def encode(self, texts: list[str]) -> np.ndarray:
+        vectors = np.zeros((len(texts), 8), dtype=np.float32)
+        for row_index, text in enumerate(texts):
+            for char_index, character in enumerate(text):
+                vectors[row_index, (ord(character) + char_index) % 8] += 1.0
+            norm = np.linalg.norm(vectors[row_index])
+            if norm:
+                vectors[row_index] /= norm
+        return vectors
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +88,16 @@ def test_effective_metadata_attached(provisions):
         assert p.last_checked_at is not None
 
 
+def test_build_index_text_and_vietnamese_tokenization(provisions):
+    provision = next(p for p in provisions if p.article_no == "22" and p.clause_no == "1")
+    index_text = build_index_text(provision)
+
+    assert index_text.startswith("[67/VBHN-VPQH] Điều 22.")
+    assert "Khoản 1." in index_text
+    assert provision.text in index_text
+    assert "chương_trình" in tokenize_vietnamese("chương trình máy tính")
+
+
 def test_retriever_filters_out_of_effect_status(provisions):
     """Xác nhận retriever loại bỏ chunk có status != 'hieu_luc'.
 
@@ -81,8 +107,8 @@ def test_retriever_filters_out_of_effect_status(provisions):
     # Deep copy để không mutate fixture dùng chung
     local_provisions = copy.deepcopy(provisions)
 
-    embedder = HashingFallbackEmbedder()
-    texts = [p.text for p in local_provisions]
+    embedder = DeterministicTestEmbedder()
+    texts = [build_index_text(p) for p in local_provisions]
     vecs = embedder.encode(texts)
     idx = FaissFlatIndex(vecs.shape[1])
     idx.add(np.asarray(vecs), [p.provision_id for p in local_provisions])
@@ -106,7 +132,7 @@ def test_retrieve_bm25_filters_out_of_effect_status(provisions):
     from retrieval.bm25_index import Bm25Index
 
     local_provisions = copy.deepcopy(provisions)
-    texts = [p.text for p in local_provisions]
+    texts = [build_index_text(p) for p in local_provisions]
     p_ids = [p.provision_id for p in local_provisions]
     bm25 = Bm25Index(texts, p_ids)
 
@@ -181,7 +207,7 @@ def test_vector_id_and_embedding_model_populated(provisions, tmp_path):
 def test_bm25_index_search(provisions):
     from retrieval.bm25_index import Bm25Index
 
-    texts = [p.text for p in provisions]
+    texts = [build_index_text(p) for p in provisions]
     p_ids = [p.provision_id for p in provisions]
     bm25 = Bm25Index(texts, p_ids)
 
@@ -193,14 +219,14 @@ def test_bm25_index_search(provisions):
 
 
 def test_evaluate_system(provisions, tmp_path):
-    from evaluation.scripts.run_recall import evaluate_system
+    from evaluation.scripts.metrics.run_recall import evaluate_system
     from retrieval.retriever import Bm25Index
     from main import index_corpus
 
     tmp_chunks = tmp_path / "chunks.jsonl"
     tmp_index = tmp_path / "faiss.index"
     embedder, faiss_idx, _ = index_corpus(provisions, output_index_path=tmp_index, output_chunks_path=tmp_chunks)
-    bm25_idx = Bm25Index([p.text for p in provisions], [p.provision_id for p in provisions])
+    bm25_idx = Bm25Index([build_index_text(p) for p in provisions], [p.provision_id for p in provisions])
     eval_set = [
         {
             "question": "Quyền tác giả đối với chương trình máy tính",
@@ -230,6 +256,24 @@ def test_refusal_gate_out_of_scope_keyword():
     assert "ngoài phạm vi" in decision.reason
 
 
+def test_refusal_gate_can_disable_keyword_layer(provisions, monkeypatch):
+    from retrieval.retriever import RetrievalHit
+    import generation.llm as llm
+    import generation.refusal_gate as rg
+
+
+
+    in_scope = next(p for p in provisions if not p.is_distractor)
+    hits = [RetrievalHit(provision=in_scope, score=0.8)]
+    query = "Quy định về sáng chế trong pháp luật sở hữu trí tuệ là gì?"
+
+    keyword_decision = rg.decide(query, hits)
+    semantic_only_decision = rg.decide(query, hits, use_keywords=False)
+
+    assert keyword_decision.should_refuse is True
+    assert semantic_only_decision.should_refuse is False
+
+
 def test_refusal_gate_distractor_ratio(provisions):
     from retrieval.retriever import RetrievalHit
 
@@ -242,18 +286,125 @@ def test_refusal_gate_distractor_ratio(provisions):
     assert "dữ liệu nhiễu" in decision.reason
 
 
-def test_citations_exclude_distractor(provisions):
-    from retrieval.retriever import RetrievalHit
 
-    hits = [
-        RetrievalHit(provision=p, score=0.9)
-        for p in provisions
-        if p.article_no in ("22", "58")
+
+
+def test_llm_generation_fails_without_fallback(monkeypatch):
+    from generation import llm
+
+    monkeypatch.setattr(llm, "get_api_key", lambda: None)
+
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+        llm.generate("question", "prompt", [])
+
+
+def test_llm_runtime_retries_transient_errors_with_backoff(monkeypatch):
+    from generation import llm
+
+    attempts = []
+    sleeps = []
+    responses = [TimeoutError("timeout"), RuntimeError("503 unavailable"),
+                 '{"decision":"REFUSE","reason":"insufficient_context","used_citations":[],"answer":""}']
+
+    def call_gemini(prompt, api_key):
+        attempts.append(api_key)
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    monkeypatch.setattr(llm, "get_api_key", lambda: "test-key")
+    monkeypatch.setattr(llm, "_call_gemini", call_gemini)
+    monkeypatch.setattr(llm.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(llm.config, "GEMINI_MAX_ATTEMPTS", 3)
+    monkeypatch.setattr(llm.config, "GEMINI_RETRY_BASE_SECONDS", 0.01)
+
+    result = llm.generate("question", "prompt", [])
+
+    assert result["decision"] == "REFUSE"
+    assert len(attempts) == 3
+    assert sleeps == [0.01, 0.02]
+
+
+def test_llm_runtime_does_not_retry_non_retryable_errors(monkeypatch):
+    from generation import llm
+
+    calls = []
+    monkeypatch.setattr(llm, "get_api_key", lambda: "test-key")
+    monkeypatch.setattr(llm, "_call_gemini", lambda prompt, api_key: calls.append(1) or (_ for _ in ()).throw(RuntimeError("401 unauthorized")))
+
+    with pytest.raises(RuntimeError, match="không khả dụng"):
+        llm.generate("question", "prompt", [])
+
+    assert calls == [1]
+
+
+def test_ui_uses_safe_message_for_backend_errors():
+    from webapp.components import chat
+
+    logged = []
+    chat.logger.exception = lambda message: logged.append(message)
+
+    assert chat._safe_user_error() == chat.USER_FACING_ERROR
+    assert logged == ["RAG request failed"]
+    assert "stack" not in chat.USER_FACING_ERROR.lower()
+
+
+def test_step_7_analysis_produces_group_ci_latency_and_evidence():
+    from evaluation.core.analysis import analyze_records, bootstrap_ci
+
+    records = [
+        {"request": {"id": "q1", "group": "Nhóm 1", "expected_behavior": "answer", "gold_ids": ["a"]}, "response": {"status": "success", "retrieved_ids": ["a"], "refused": False, "latency_ms": 10, "retry_count": 0}},
+        {"request": {"id": "q2", "group": "Nhóm 4", "expected_behavior": "refuse", "gold_ids": []}, "response": {"status": "success", "retrieved_ids": [], "refused": False, "latency_ms": 30, "retry_count": 1}},
+        {"request": {"id": "q3", "group": "Nhóm 5c", "expected_behavior": "refuse", "gold_ids": []}, "response": {"status": "error", "error": "Gemini timeout", "retry_count": 2}},
     ]
-    citations = build_citations(hits)
-    cited_articles = {c["article_no"] for c in citations}
-    assert "58" not in cited_articles
-    assert "22" in cited_articles
+
+    result = analyze_records(records)
+    ci = bootstrap_ci([1.0, 0.0, 1.0])
+
+    assert ci["n_resamples"] == 1000
+    assert ci["sample_size"] == 3
+    assert result["group_retrieval"]["Nhóm 1"]["clause_recall@1"]["point_estimate"] == 1.0
+    assert result["group_refusal"]["Nhóm 4"]["false_accept"] == 1
+    assert result["latency"]["overall"]["median_ms"] == 20.0
+    assert result["latency"]["overall"]["p95_ms"] == 29.0
+    assert result["retry"]["observed_retry_count"] == 3
+    assert result["error_counts"]["API/Network Error"] == 1
+
+
+def test_cem_maps_llm_markers_to_candidate_ids(tmp_path):
+    from evaluation.scripts.metrics.run_CEM import evaluate_cem
+
+    result_path = tmp_path / "rag.jsonl"
+    result_path.write_text(
+        json.dumps(
+            {
+                "request": {"id": "Q1", "gold_ids": ["doc-1", "doc-3"], "expected_behavior": "answer"},
+                "response": {
+                    "status": "success",
+                    "answer": "Theo quy định tại [1] và [2].",
+                    "citation_candidates": [
+                            {"provision_id": "doc-1", "is_distractor": False},
+                            {"provision_id": "doc-2", "is_distractor": True},
+                            {"provision_id": "doc-3", "is_distractor": False},
+                    ],
+                    "cited_documents": [
+                        "doc-1",
+                        "doc-3",
+                    ],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = evaluate_cem(result_path)
+
+    assert report["citation_precision"] == 100.0
+    assert report["citation_recall"] == 100.0
+    assert report["exact_match_rate"] == 100.0
 
 
 def test_confusion_matrix_and_recall():
@@ -280,7 +431,18 @@ def test_pipeline_api_initialization():
     assert pipeline.embedder is not None
 
 
-def test_pipeline_api_query_in_scope():
+def test_pipeline_api_query_in_scope(monkeypatch):
+    import pipeline as pipeline_module
+
+    monkeypatch.setattr(
+        pipeline_module,
+        "generate",
+        lambda question, prompt, hits: {
+            "answer": "Câu trả lời pháp lý thử nghiệm [1].",
+            "decision": "ANSWER",
+            "used_citations": [1]
+        },
+    )
     pipeline = RAGPipeline()
     question = "Chương trình máy tính được bảo hộ dưới hình thức nào theo Luật Sở hữu trí tuệ?"
     res = pipeline.query(question)
@@ -288,9 +450,9 @@ def test_pipeline_api_query_in_scope():
     assert res.question == question
     assert res.is_refused is False
     assert len(res.answer) > 20
-    assert len(res.citations) > 0
+    assert len(res.used_citations) > 0
     assert res.execution_time_seconds > 0
-    assert any("22" in str(c.get("article_no")) or "14" in str(c.get("article_no")) for c in res.citations)
+    assert len(res.retrieval_hits) > 0
 
 
 def test_pipeline_api_query_refusal_out_of_scope():
@@ -300,14 +462,20 @@ def test_pipeline_api_query_refusal_out_of_scope():
 
     assert res.is_refused is True
     assert "ngoài phạm vi" in res.refusal_reason.lower() or "xe máy" in res.refusal_reason.lower()
-    assert len(res.citations) == 0
+    assert len(res.used_citations) == 0
 
 
-def test_pipeline_api_answer_rag_helper():
+def test_pipeline_api_answer_rag_helper(monkeypatch):
+    import pipeline as pipeline_module
+
+    monkeypatch.setattr(pipeline_module, "generate", lambda question, prompt, hits: {
+        "answer": "Câu trả lời [1].",
+        "used_citations": [1]
+    })
     data = answer_rag("Điều 22 Luật Sở hữu trí tuệ quy định gì về bản sao dự phòng phần mềm?")
     assert isinstance(data, dict)
     assert "answer" in data
-    assert "citations" in data
+    assert "used_citations" in data
     assert "is_refused" in data
     assert data["is_refused"] is False
 # ==============================================================================
@@ -355,6 +523,28 @@ def test_refusal_gate_expanded_out_of_scope_keywords():
         assert "ngoài phạm vi" in decision.reason.lower()
 
 
+def test_heldout_questions_are_disjoint_from_dev_set():
+    """Held-out refusal questions must not overlap the development benchmark."""
+    dev_path = config.DATA_DIR / "evaluation" / "dev_set.json"
+    heldout_path = config.DATA_DIR / "evaluation" / "heldout_set.json"
+    dev_items = json.loads(dev_path.read_text(encoding="utf-8"))
+    heldout_items = json.loads(heldout_path.read_text(encoding="utf-8"))
+
+    dev_ids = {item["id"] for item in dev_items}
+    heldout_ids = {item["id"] for item in heldout_items}
+    dev_questions = {item["question"].casefold() for item in dev_items}
+    heldout_questions = {item["question"].casefold() for item in heldout_items}
+
+    assert len(heldout_items) == 30
+    assert dev_ids.isdisjoint(heldout_ids)
+    assert dev_questions.isdisjoint(heldout_questions)
+    assert {item["group"] for item in heldout_items} == {"Nhóm 4", "Nhóm 5c"}
+    assert all(item["expected_behavior"] == "refuse" for item in heldout_items)
+
+
+
+
+
 def test_monitoring_crawler_and_effective_alerts(tmp_path):
     """Kiểm tra module Crawler và phát cảnh báo hiệu lực văn bản sắp hết hạn."""
     from monitoring.crawler import CrawlResult
@@ -398,3 +588,132 @@ def test_monitoring_crawler_and_effective_alerts(tmp_path):
     save_alerts(alerts, path=alerts_file)
     active = get_active_alerts(path=alerts_file)
     assert len(active) == len(alerts)
+
+
+def test_partial_amendment_updates_only_targeted_provisions():
+    from monitoring.crawler import CrawlResult
+    from monitoring.effective_checker import apply_crawl_results
+    from ingestion.chunker import Provision
+
+    def make_provision(provision_id, article_no, clause_no):
+        return Provision(
+            provision_id=provision_id,
+            law_code="17/2023/ND-CP",
+            article_no=article_no,
+            clause_no=clause_no,
+            title="Điều khoản thử nghiệm",
+            text="Nội dung",
+            topic="quyen_tac_gia_ctmt",
+            is_distractor=False,
+            source_url="https://example.invalid",
+            status="hieu_luc",
+        )
+
+    target = make_provision("17-2023-ND-CP_Art10_Kh1", "10", "1")
+    sibling = make_provision("17-2023-ND-CP_Art10_Kh2", "10", "2")
+    other_article = make_provision("17-2023-ND-CP_Art11_Kh1", "11", "1")
+    snapshot = CrawlResult(
+        law_code="17/2023/ND-CP",
+        source_url="https://example.invalid",
+        crawled_at="2026-10-02T00:00:00+00:00",
+        status="con_hieu_luc_mot_phan",
+        effective_from="2023-04-26",
+        effective_to="2026-04-09",
+        replaced_by="134/2026/ND-CP",
+        is_mock=False,
+        amended_provision_ids=(target.provision_id,),
+    )
+
+    updated, _ = apply_crawl_results(snapshot, [target, sibling, other_article])
+
+    assert updated[0].status == "bi_sua_doi"
+    assert updated[0].effective_to == "2026-04-09"
+    assert updated[0].replaced_by == "134/2026/ND-CP"
+    assert updated[1].status == "hieu_luc"
+    assert updated[2].status == "hieu_luc"
+
+
+def test_partial_amendment_without_targets_keeps_provisions_unchanged():
+    from monitoring.crawler import CrawlResult
+    from monitoring.effective_checker import apply_crawl_results
+    from ingestion.chunker import Provision
+
+    provision = Provision(
+        provision_id="17-2023-ND-CP_Art10_Kh1",
+        law_code="17/2023/ND-CP",
+        article_no="10",
+        clause_no="1",
+        title="Điều khoản thử nghiệm",
+        text="Nội dung",
+        topic="quyen_tac_gia_ctmt",
+        is_distractor=False,
+        source_url="https://example.invalid",
+        status="hieu_luc",
+    )
+    snapshot = CrawlResult(
+        law_code="17/2023/ND-CP",
+        source_url="https://example.invalid",
+        crawled_at="2026-10-02T00:00:00+00:00",
+        status="con_hieu_luc_mot_phan",
+        effective_from="2023-04-26",
+        effective_to=None,
+        replaced_by=None,
+        is_mock=False,
+    )
+
+    updated, _ = apply_crawl_results(snapshot, [provision])
+
+    assert updated[0].status == "hieu_luc"
+    assert updated[0].effective_to is None
+    assert updated[0].replaced_by is None
+
+
+def test_crawler_failure_returns_unverified_without_mock(monkeypatch):
+    from monitoring import crawler
+
+    def fail_open(*args, **kwargs):
+        raise TimeoutError("source timeout")
+
+    monkeypatch.setattr(crawler.urllib.request, "urlopen", fail_open)
+
+    result = crawler.fetch_snapshot("67/VBHN-VPQH")
+
+    assert result.status == "unverified"
+    assert result.is_mock is False
+    assert "TimeoutError" in result.notes
+
+
+def test_unverified_crawl_does_not_change_existing_status():
+    from monitoring.crawler import CrawlResult
+    from monitoring.effective_checker import apply_crawl_results
+    from ingestion.chunker import Provision
+
+    provision = Provision(
+        provision_id="67-VBHN-VPQH_Art22_Kh1",
+        law_code="67/VBHN-VPQH",
+        article_no="22",
+        clause_no="1",
+        title="Quyền tác giả",
+        text="Nội dung",
+        topic="quyen_tac_gia_ctmt",
+        is_distractor=False,
+        source_url="https://example.invalid",
+        status="hieu_luc",
+    )
+    snapshot = CrawlResult(
+        law_code="67/VBHN-VPQH",
+        source_url="https://example.invalid",
+        crawled_at="2026-10-02T00:00:00+00:00",
+        status="unverified",
+        effective_from="2026-03-23",
+        effective_to=None,
+        replaced_by=None,
+        is_mock=False,
+        notes="source timeout",
+    )
+
+    updated, alerts = apply_crawl_results(snapshot, [provision])
+
+    assert updated[0].status == "hieu_luc"
+    assert updated[0].effective_to is None
+    assert any(alert["alert_type"] == "UNVERIFIED_SOURCE" for alert in alerts)

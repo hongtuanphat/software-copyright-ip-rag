@@ -37,7 +37,7 @@ class FaissFlatIndex:
             results.append((self._ids[idx], float(score)))
         return results
 
-    def save(self, index_path: str | Path) -> None:
+    def save(self, index_path: str | Path, model_name: str | None = None) -> None:
         """Lưu chỉ mục FAISS và danh sách _ids tương ứng xuống đĩa."""
         import faiss
 
@@ -47,9 +47,24 @@ class FaissFlatIndex:
 
         ids_path = Path(str(idx_p) + ".ids.json")
         ids_path.write_text(json.dumps(self._ids, ensure_ascii=False, indent=2), encoding="utf-8")
+        metadata_path = Path(str(idx_p) + ".metadata.json")
+        metadata_path.write_text(
+            json.dumps(
+                {"dimension": self.dim, "model_name": model_name, "provision_ids": self._ids},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
     @classmethod
-    def load(cls, index_path: str | Path) -> FaissFlatIndex:
+    def load(
+        cls,
+        index_path: str | Path,
+        expected_dim: int | None = None,
+        expected_ids: list[str] | None = None,
+        expected_model_name: str | None = None,
+    ) -> FaissFlatIndex:
         """Nạp chỉ mục FAISS và danh sách _ids từ đĩa."""
         import faiss
 
@@ -67,6 +82,26 @@ class FaissFlatIndex:
         instance = cls(dim=index.d)
         instance._index = index
         instance._ids = ids
+        if len(ids) != index.ntotal:
+            raise ValueError("FAISS index và mapping provision_id không cùng số lượng.")
+        if len(ids) != len(set(ids)):
+            raise ValueError("Mapping provision_id của FAISS index chứa ID trùng lặp.")
+        if expected_dim is not None and index.d != expected_dim:
+            raise ValueError(
+                f"Dimension FAISS không khớp: index={index.d}, expected={expected_dim}."
+            )
+        if expected_ids is not None and ids != expected_ids:
+            raise ValueError("Mapping provision_id của FAISS index không khớp corpus hiện tại.")
+        metadata_path = Path(str(idx_p) + ".metadata.json")
+        if expected_model_name is not None:
+            if not metadata_path.exists():
+                raise ValueError("FAISS index thiếu metadata model_name.")
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata.get("model_name") != expected_model_name:
+                raise ValueError(
+                    "Model của FAISS index không khớp embedder hiện tại: "
+                    f"index={metadata.get('model_name')}, expected={expected_model_name}."
+                )
         return instance
 
     def __len__(self) -> int:

@@ -46,22 +46,27 @@ def run_app() -> None:
         initial_sidebar_state="expanded",
     )
 
-    load_css()           # 1 lần inject CSS
-    initialize_session() # 1 lần khởi tạo state (no-op nếu state đã có)
-    render_sidebar()     # render sidebar, no side effects ngoài button click
+    load_css()           # Nạp CSS
+    initialize_session() # Khởi tạo state (bỏ qua nếu state đã tồn tại)
+    render_sidebar()     # Hiển thị thanh bên (sidebar), không có tác động phụ ngoài hành động nhấn nút
 
     is_processing = st.session_state.get("is_processing", False)
 
     # 1. Hướng input từ user (từ chat_input hoặc suggestion button)
-    prompt = st.chat_input("Đặt câu hỏi nghiên cứu pháp lý...", disabled=is_processing)
+    # Giới hạn max_chars ở mức an toàn (khoảng 10 ký tự/từ) để tránh paste nội dung quá khủng
+    prompt = st.chat_input("Đặt câu hỏi nghiên cứu pháp lý...", disabled=is_processing, max_chars=15000)
     if "pending_prompt" in st.session_state:
         prompt = st.session_state.pop("pending_prompt")
 
     # Bắt đầu luồng xử lý câu hỏi mới
     if prompt and not is_processing:
-        st.session_state["processing_prompt"] = prompt
-        st.session_state["is_processing"] = True
-        st.rerun()
+        word_count = len(prompt.split())
+        if word_count > 1500:
+            st.error(f"Câu hỏi của bạn quá dài ({word_count} từ). Vui lòng rút gọn nội dung dưới 1500 từ.")
+        else:
+            st.session_state["processing_prompt"] = prompt
+            st.session_state["is_processing"] = True
+            st.rerun()
 
     has_messages = bool(st.session_state.get("messages"))
 

@@ -21,7 +21,6 @@ def recall_at_k(actual_provisions: list[str], retrieved_provisions: list[str], k
     hits = len(actual_set.intersection(top_k_retrieved))
     return hits / len(actual_set)
 
-
 def hierarchical_article_recall_at_k(actual_provisions: list[str], retrieved_provisions: list[str], k: int) -> float:
     """Tính Recall@k ở cấp độ Điều luật (Hierarchical Article Match) để chẩn đoán lỗi."""
     if not actual_provisions:
@@ -58,28 +57,16 @@ class RefusalConfusionMatrix:
         return self.true_refusal / denom if denom > 0 else 0.0
 
     @property
-    def true_refusal_rate(self) -> float:
-        return self.trr
-
-    @property
     def frr(self) -> float:
         """Tỷ lệ từ chối nhầm (False Refusal Rate) = FR / (FR + TA)."""
         denom = self.false_refusal + self.true_accept
         return self.false_refusal / denom if denom > 0 else 0.0
 
     @property
-    def false_refusal_rate(self) -> float:
-        return self.frr
-
-    @property
     def far(self) -> float:
         """Tỷ lệ chấp nhận nhầm câu ngoài phạm vi (False Acceptance Rate) = FA / (TR + FA)."""
         denom = self.true_refusal + self.false_accept
         return self.false_accept / denom if denom > 0 else 0.0
-
-    @property
-    def false_acceptance_rate(self) -> float:
-        return self.far
 
     def to_dict(self) -> dict[str, float | int]:
         return {
@@ -131,13 +118,6 @@ def build_confusion_matrix(
     return cm
 
 
-def extract_citations_from_text(text: str) -> set[str]:
-    """Tìm tất cả các ID định dạng Art... trong văn bản."""
-    if not text:
-        return set()
-    matches = re.findall(r"Art\d+(?:_[a-zA-Z0-9_]+)?", text)
-    return set(matches)
-
 
 def extract_article_level(citations: set[str]) -> set[str]:
     """Chuyển đổi danh sách ID thành cấp độ Điều luật (Article) để chẩn đoán."""
@@ -185,7 +165,15 @@ class CitationMetricsReport:
 
     def to_dict(self) -> dict[str, float | int]:
         if self.eval_records == 0:
-            return {}
+            return {
+                "eval_records": 0,
+                "exact_match_rate": 0.0,
+                "citation_precision": 0.0,
+                "citation_recall": 0.0,
+                "article_exact_match_rate": 0.0,
+                "article_citation_precision": 0.0,
+                "article_citation_recall": 0.0
+            }
         return {
             "eval_records": self.eval_records,
             "exact_match_rate": round((self.exact_match_count / self.eval_records) * 100, 2),

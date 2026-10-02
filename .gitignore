@@ -26,6 +26,11 @@ data/processed/*
 # Evaluation output results & temporary run artifacts
 evaluation/*_results.json
 evaluation/recall_results.json
+evaluation/results/*
+!evaluation/results/.gitkeep
+
+# Held-out evaluation data is local and must not be used as tuning input.
+!data/evaluation/heldout_set.json
 
 # IDEs & Editor settings
 .vscode/

@@ -7,4 +7,9 @@ streamlit>=1.35
 pytest>=8.0
 beautifulsoup4>=4.14.2
 python-dotenv>=1.0.1
+pyvi>=0.1.1
+scipy>=1.10
 torchvision
+pytest>=8.0.0
+pandas>=2.2.0
+

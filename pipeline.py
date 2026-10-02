@@ -12,19 +12,19 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-import numpy as np
 
 import config
-from generation.citation import build_citations
 from generation.llm import generate
 from generation.prompt_builder import build_prompt
 from generation.refusal_gate import decide
+from generation.citation_resolver import resolve_citations
 from ingestion.chunker import Provision
+from ingestion.utils import build_index_text
 from monitoring.effective_checker import get_active_alerts
 from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
-from retrieval.retriever import RetrievalHit, retrieve, retrieve_bm25, retrieve_hybrid
+from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
 
 
 @dataclass
@@ -33,10 +33,12 @@ class RAGResponse:
 
     question: str
     answer: str
+    raw_answer: str = ""
     should_refuse: bool = False
     refusal_reason: str = ""
-    citations: list[dict[str, Any]] = field(default_factory=list)
+    used_citations: list[int] = field(default_factory=list)
     retrieval_hits: list[dict[str, Any]] = field(default_factory=list)
+    cited_documents: list[dict[str, Any]] = field(default_factory=list)
     execution_time_ms: float = 0.0
     active_alerts: list[dict[str, Any]] = field(default_factory=list)
 
@@ -58,8 +60,15 @@ class RAGResponse:
 class RAGPipeline:
     """Lớp điều phối chính cho hệ thống RAG."""
 
-    def __init__(self, mode: str = config.RETRIEVAL_MODE):
+    def __init__(
+        self,
+        mode: str = config.RETRIEVAL_MODE,
+        enable_entity: bool = True,
+        use_keywords: bool = True,
+    ):
         self.mode = mode
+        self.enable_entity = enable_entity
+        self.use_keywords = use_keywords
         self.provisions: list[Provision] = []
         self.embedder: Any = None
         self.faiss_index: Optional[FaissFlatIndex] = None
@@ -83,20 +92,22 @@ class RAGPipeline:
         # 2. Khởi tạo mô hình nhúng và chỉ mục FAISS
         self.embedder = get_embedder()
         if config.FAISS_INDEX_PATH.exists():
-            self.faiss_index = FaissFlatIndex.load(config.FAISS_INDEX_PATH)
+            self.faiss_index = FaissFlatIndex.load(
+                config.FAISS_INDEX_PATH,
+                expected_dim=config.EMBEDDING_DIM,
+                expected_ids=[p.provision_id for p in self.provisions],
+                expected_model_name=getattr(self.embedder, "model_name", config.EMBEDDING_MODEL_NAME),
+            )
         else:
-            texts = [p.text for p in self.provisions]
+            texts = [build_index_text(p) for p in self.provisions]
             vecs = self.embedder.encode(texts)
             dim = int(vecs.shape[1]) if hasattr(vecs, "shape") else config.EMBEDDING_DIM
             self.faiss_index = FaissFlatIndex(dim=dim)
             pids = [p.provision_id for p in self.provisions]
             self.faiss_index.add(vecs, pids)
 
-        # 3. Tạo chỉ mục từ khóa BM25 (áp dụng Contextual Chunk Enrichment)
-        texts = [
-            f"[{p.law_code}] Điều {p.article_no}. {p.title}\n{f'Khoản {p.clause_no}. ' if p.clause_no else ''}{p.text}"
-            for p in self.provisions
-        ]
+        # 3. Tạo chỉ mục từ khóa BM25
+        texts = [build_index_text(p) for p in self.provisions]
         pids = [p.provision_id for p in self.provisions]
         self.bm25_index = Bm25Index(texts, pids)
 
@@ -116,7 +127,7 @@ class RAGPipeline:
                     refusal_reason="Dữ liệu chưa sẵn sàng.",
                 )
 
-        # 1. Tìm kiếm đoạn luật liên quan theo chế độ được chọn (Hybrid RRF thuần tốc độ cao)
+        # 1. Tìm kiếm đoạn luật liên quan theo chế độ được chọn
         if self.mode == "hybrid" and self.bm25_index is not None and self.faiss_index is not None:
             hits = retrieve_hybrid(
                 question,
@@ -125,25 +136,33 @@ class RAGPipeline:
                 self.faiss_index,
                 self.bm25_index,
                 top_k=top_k,
+                enable_entity=self.enable_entity,
             )
         elif self.mode == "bm25" and self.bm25_index is not None:
             hits = retrieve_bm25(question, self.provisions, self.bm25_index, top_k=top_k)
-        elif self.faiss_index is not None:
+        elif self.mode == "dense" and self.faiss_index is not None:
             hits = retrieve(question, self.provisions, self.embedder, self.faiss_index, top_k=top_k)
         else:
-            hits = []
+            raise ValueError(f"Chế độ tìm kiếm không hợp lệ hoặc chỉ mục bị thiếu: mode='{self.mode}'")
 
         # 2. Kiểm tra câu hỏi qua bộ lọc từ chối
-        decision = decide(question, hits)
+        decision = decide(question, hits, use_keywords=self.use_keywords)
         active_alerts = get_active_alerts()
 
         # Đóng gói danh sách kết quả tìm được
-        retrieval_hits_data = [
+        retrieval_hits = [
             {
                 "provision_id": h.provision.provision_id,
+                "law_code": h.provision.law_code,
                 "article_no": h.provision.article_no,
                 "clause_no": h.provision.clause_no,
                 "title": h.provision.title,
+                "text": h.provision.text,
+                "topic": h.provision.topic,
+                "status": h.provision.status,
+                "effective_from": h.provision.effective_from,
+                "effective_to": h.provision.effective_to,
+                "replaced_by": h.provision.replaced_by,
                 "score": h.score,
                 "is_distractor": h.provision.is_distractor,
             }
@@ -163,26 +182,52 @@ class RAGPipeline:
                 answer=refusal_text,
                 should_refuse=True,
                 refusal_reason=decision.reason,
-                retrieval_hits=retrieval_hits_data,
+                retrieval_hits=retrieval_hits,
                 execution_time_ms=elapsed_ms,
                 active_alerts=active_alerts,
             )
 
-        # 3. Tạo prompt và gọi Gemini sinh câu trả lời
-        prompt = build_prompt(question, hits)
-        answer = generate(question, prompt, hits)
+        # 3. Tạo lời nhắc (prompt) và gọi mô hình sinh câu trả lời (định dạng JSON)
+        prompt = build_prompt(question, hits, active_alerts=active_alerts)
+        llm_response = generate(question, prompt, hits)
+        
+        decision_str = str(llm_response.get("decision", "")).strip().upper()
+        reason_str = str(llm_response.get("reason", "")).strip()
+        answer_text = llm_response.get("answer", "")
+        raw_used_citations = llm_response.get("used_citations", [])
+        
+        visible_documents = [document for document in retrieval_hits if not document["is_distractor"]]
+        answer_text, cited_documents, used_citations = resolve_citations(
+            answer_text,
+            raw_used_citations,
+            visible_documents,
+        )
+        
+        # Nếu LLM phân tích ngữ cảnh và quyết định từ chối (Dynamic Refusal)
+        if decision_str == "REFUSE":
+            elapsed_ms = (time.time() - start_time) * 1000.0
+            return RAGResponse(
+                question=question,
+                answer=answer_text if answer_text else "Xin lỗi, tôi không đủ thông tin pháp lý để trả lời câu hỏi này.",
+                raw_answer=llm_response.get("answer", ""),
+                should_refuse=True,
+                refusal_reason=reason_str if reason_str else "LLM quyết định từ chối dựa trên phân tích ngữ cảnh và yêu cầu.",
+                retrieval_hits=retrieval_hits,
+                execution_time_ms=elapsed_ms,
+                active_alerts=active_alerts,
+            )
 
-        # 4. Tạo danh sách trích dẫn điều luật
-        citations = build_citations(hits)
         elapsed_ms = (time.time() - start_time) * 1000.0
 
         return RAGResponse(
             question=question,
-            answer=answer,
+            answer=answer_text,
+            raw_answer=llm_response.get("answer", ""),
             should_refuse=False,
-            refusal_reason="",
-            citations=citations,
-            retrieval_hits=retrieval_hits_data,
+            refusal_reason=reason_str,
+            used_citations=used_citations,
+            retrieval_hits=retrieval_hits,
+            cited_documents=cited_documents,
             execution_time_ms=elapsed_ms,
             active_alerts=active_alerts,
         )
@@ -192,10 +237,23 @@ class RAGPipeline:
 _global_pipeline: Optional[RAGPipeline] = None
 
 
-def get_pipeline(mode: str = config.RETRIEVAL_MODE) -> RAGPipeline:
+def get_pipeline(
+    mode: str = config.RETRIEVAL_MODE,
+    enable_entity: bool = True,
+    use_keywords: bool = True,
+) -> RAGPipeline:
     global _global_pipeline
-    if _global_pipeline is None or _global_pipeline.mode != mode:
-        _global_pipeline = RAGPipeline(mode=mode)
+    if (
+        _global_pipeline is None
+        or _global_pipeline.mode != mode
+        or _global_pipeline.enable_entity != enable_entity
+        or _global_pipeline.use_keywords != use_keywords
+    ):
+        _global_pipeline = RAGPipeline(
+            mode=mode,
+            enable_entity=enable_entity,
+            use_keywords=use_keywords,
+        )
     return _global_pipeline
 
 

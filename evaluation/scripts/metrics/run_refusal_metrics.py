@@ -1,4 +1,4 @@
-"""evaluation/scripts/run_refusal_metrics.py
+"""evaluation/scripts/metrics/run_refusal_metrics.py
 
 Đánh giá TP, FP, TN, FN và TRR, FAR, FRR dựa trên response.refused và expected_behavior.
 """
@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Đảm bảo chạy từ thư mục gốc
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -17,6 +17,7 @@ setup_encoding()
 
 import config
 from evaluation.core.metrics import RefusalConfusionMatrix, build_confusion_matrix
+from evaluation.core.utils import is_out_of_scope, get_refused
 
 def calculate_metrics(file_path: Path) -> dict:
     if not file_path.exists():
@@ -28,38 +29,49 @@ def calculate_metrics(file_path: Path) -> dict:
 
     gold_list = []
     pred_list = []
-    skipped_error = 0
+    success_count = 0
+    error_count = 0
 
     print(f"\nĐang tính Metrics cho file: {file_path.name} ({len(records)} records)")
     for i, rec in enumerate(records, 1):
         req = rec.get("request", {})
         res = rec.get("response", {})
 
-        # Bỏ qua bản ghi lỗi — không tính API error thành refusal
-        if res.get("status") == "error":
-            skipped_error += 1
+        status = res.get("status")
+        if status == "error":
+            error_count += 1
+            # Không tính API error vào bộ đếm Confusion Matrix, 
+            # nhưng vẫn đếm vào error_count để báo cáo failure rate.
+            continue
+        else:
+            success_count += 1
+
+        out_of_scope = is_out_of_scope(req)
+        refused_val = get_refused(res)
+
+        if out_of_scope is None or refused_val is None:
+            print(f"  [Cảnh báo] Dòng {i} (ID: {req.get('id')}) dữ liệu không hợp lệ. Bỏ qua.")
             continue
 
-        expected = str(req.get("expected_behavior", "answer")).lower()
+        gold_list.append(out_of_scope)
+        pred_list.append(refused_val)
 
-        # Sử dụng field `response.refused` (bool)
-        refused_val = res.get("refused")
-        if refused_val is None:
-            print(f"  [Cảnh báo] Dòng {i} (ID: {req.get('id')}) thiếu 'refused'. Bỏ qua.")
-            continue
-
-        gold_list.append(expected == "refuse")
-        pred_list.append(bool(refused_val))
-
-    if skipped_error:
-        print(f"  [Info] Đã bỏ qua {skipped_error} bản ghi status='error'.")
+    if error_count:
+        print(f"  [Info] Hệ thống gặp {error_count} lỗi API (chiếm {round(error_count/len(records)*100, 2)}%).")
 
     if not gold_list:
         print(f"Không có dữ liệu hợp lệ nào để chấm điểm trong {file_path.name}")
         return {}
 
     cm = build_confusion_matrix(gold_list, pred_list)
-    return cm.to_dict()
+    result = cm.to_dict()
+    total = len(records)
+    result["total_records"] = total
+    result["success_count"] = success_count
+    result["error_count"] = error_count
+    result["success_rate"] = round((success_count / total) * 100, 2) if total else 0.0
+    result["failure_rate"] = round((error_count / total) * 100, 2) if total else 0.0
+    return result
 
 def main():
     parser = argparse.ArgumentParser()
@@ -82,28 +94,20 @@ def main():
         print(f"[Auto] Đã tự động chọn thư mục kết quả mới nhất: {results_dir.name}")
     
     final_report = {}
-    systems = set()
-    for f in results_dir.glob("*.json*"):
-        if "report" not in f.name.lower():
-            sys_name = f.stem  # lấy toàn bộ system, vd: "rag", "bm25", "gemini"
-            systems.add(sys_name)
+    systems = [d.name for d in results_dir.iterdir() if d.is_dir()]
     
     for sys_name in systems:
-        file_path = None
-        for f in results_dir.glob(f"{sys_name}.json*"):
-            if "report" not in f.name.lower():
-                file_path = f
-                break
-            
-        if file_path and file_path.exists():
+        file_path = results_dir / sys_name / "generation_results.jsonl"
+        if file_path.exists():
             metrics = calculate_metrics(file_path)
             if metrics:
                 final_report[sys_name] = metrics
                 print(f"\n--- Báo cáo {sys_name.upper()} ---")
+                print(f"Success Rate: {metrics.get('success_rate', 0)}% ({metrics.get('success_count', 0)}/{metrics.get('total_records', 0)}) | Failure Rate: {metrics.get('failure_rate', 0)}%")
                 print(f"TRR (Từ chối đúng): {metrics['trr']}%")
                 print(f"FAR (Chấp nhận nhầm): {metrics['far']}%")
                 print(f"FRR (Từ chối nhầm): {metrics['frr']}%")
-                print(f"Tổng: {metrics['total']} câu (TR: {metrics['true_refusal']}, FA: {metrics['false_accept']}, TA: {metrics['true_accept']}, FR: {metrics['false_refusal']})\n")
+                print(f"Tổng Refusal Eval: {metrics['total']} câu (TR: {metrics['true_refusal']}, FA: {metrics['false_accept']}, TA: {metrics['true_accept']}, FR: {metrics['false_refusal']})\n")
 
     if final_report:
         report_path = results_dir / "refusal_metrics_report.json"

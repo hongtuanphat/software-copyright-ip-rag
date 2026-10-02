@@ -1,0 +1,31 @@
+1
+
+Chốt kiến trúc theo code thực tếTrước khi sửa gì, thống nhất một bản mô tả duy nhất: Hybrid 3 nhánh (dense, BM25, entity) + RRF trọng số bằng nhau, RRF_K=15; Refusal Gate 3 tầng (từ khóa, ngưỡng cosine 0.22, tỷ lệ distractor 0.6). Đây là 'nguồn sự thật' để sau này đối chiếu lại toàn bộ báo cáo (mục 1.2.4, 3.1.3, 3.2.x, 5.1, 5.2, Phụ lục B).
+
+2
+
+Vá các lỗi code nền tảng (không liên quan số liệu)Viết hàm build_index_text() dùng chung cho FAISS/BM25 ở mọi nơi (main.py, pipeline.py, run_recall.py) rồi dựng lại index. Bắt lỗi thay vì fallback âm thầm sang HashingFallbackEmbedder; ghi model_name/số chiều/commit vào file kết quả. Thêm tách từ tiếng Việt (pyvi/VnCoreNLP) cho cả embedder và BM25, và set model.max_seq_length = config.MAX_SEQ_LENGTH. Dọn REFUSAL_THRESHOLD thừa, sửa docstring sai ngưỡng, xử lý METADATA_FILE không tồn tại.
+
+3
+
+Gỡ rò rỉ dữ liệu trong Refusal GateXóa các cụm từ khóa chép gần nguyên văn câu test trong OUT_OF_SCOPE_KEYWORDS, chỉ giữ từ khóa tổng quát theo chủ đề. Viết thêm 30-50 câu held-out (đặc biệt Nhóm 4, 5c) chưa từng dùng khi xây gate, để số 'từ chối đúng' sau này là thật chứ không phải học thuộc test set.
+
+4
+
+Sửa cách tính các chỉ số then chốtĐịnh nghĩa lại 'Accuracy' bằng công thức rõ ràng (đúng phạm vi + đúng Khoản / từ chối đúng phạm vi ngoài) và đưa code tính vào repo. Sửa build_citations() để parse đúng các [số] LLM thực sự trích, ánh xạ về provision_id, rồi tính Citation Precision/Recall/EM trên tập đó (dùng khung run_CEM.py có sẵn) — số 'clause match 54,29%' hiện tại thực chất là recall truy hồi, không phải trích dẫn thật.
+
+5
+
+Tách tập dev/test, thêm ablationTách dev_set.json thành tập dev (để tune ngưỡng cosine, k, RRF_K) và tập test (chỉ chạy một lần cuối cùng). Thêm ablation: Hybrid có/không nhánh entity (ảnh hưởng chính đến Nhóm 3), và Gate chỉ-tầng-ngữ-nghĩa so với có-từ-khóa. Thêm baseline còn thiếu: BM25+Gemini end-to-end, Dense-only RAG, và long-context (nhét toàn bộ 1.375 chunks vào Gemini).
+
+6
+
+Chạy lại toàn bộ eval đúng MỘT lầnGộp thành một lệnh duy nhất (vd: run_all.py) chạy recall + generation + CEM trên cùng một phiên bản code, ghi commit hash, tên embedder, ngày chạy vào file kết quả có version theo thư mục. Sửa .gitignore đang mâu thuẫn với việc file kết quả vẫn bị commit. Từ đây về sau, báo cáo chỉ được dùng số từ lần chạy này — không trộn recall_results.json cũ với generation_eval_results.json cũ.
+
+7
+
+Phân tích sâu: theo nhóm, độ tin cậy, nguyên nhân lỗiThêm bảng kết quả theo từng nhóm câu hỏi (1,2,3,4,5a-d) cho cả Recall và tỷ lệ từ chối đúng. Tính khoảng tin cậy 95% (bootstrap) cho các chỉ số chính vì tập chỉ có 100 câu (Nhóm 4 chỉ 12 câu). Thống kê nguyên nhân của các ca từ chối nhầm (hiện đổ hết cho 'distractor' — nhãn này lại được gán tay, không đại diện corpus thật) và làm rõ ca latency 35 giây là do retry/API chứ không phải reranker.
+
+8
+
+Viết lại báo cáo dựa trên số liệu mớiChỉ sau khi có bộ số liệu duy nhất, đồng bộ lại toàn bộ Chương 4-5: sửa mục 4.4.2 (+12,86 điểm so với BM25, ghi rõ cấp Điều/Khoản), bỏ các khẳng định quá tay ('giải quyết triệt để', 'chính xác tuyệt đối', 'tính mới'), thêm bảng đối chiếu FR/NFR với số đo được, bổ sung tài liệu tham khảo còn thiếu (BM25, FAISS, Sentence-BERT, RRF), xóa ghi chú soạn thảo còn sót, và thay ví dụ PoC Điều 59 bằng ví dụ có câu trả lời rõ ràng. Mình có các bước cần thực hiện như này. và các lỗi được ghi như sau. Mình muốn bạn giúp mình tạo 1 rule prompt chat AI để có thể thực hiện các nội dung trên. 

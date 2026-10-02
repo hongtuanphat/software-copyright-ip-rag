@@ -19,13 +19,11 @@ from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import Embedder
 from retrieval.faiss_index import FaissFlatIndex
 
-
 @dataclass
 class RetrievalHit:
     """Chứa thông tin đoạn luật tìm được và điểm số tương ứng."""
     provision: Provision
     score: float
-
 
 def retrieve(
     query: str,
@@ -61,6 +59,7 @@ def retrieve_bm25(
     bm25_index: Bm25Index,
     top_k: int = config.TOP_K,
     filter_status: bool = True,
+    min_score: float = config.BM25_MIN_SCORE,
 ) -> list[RetrievalHit]:
     """Tìm kiếm theo từ khóa trùng khớp (BM25Okapi)."""
     raw_results = bm25_index.search(query, top_k=min(len(provisions), top_k * 3))
@@ -69,6 +68,8 @@ def retrieve_bm25(
 
     for pid, score in raw_results:
         if pid not in by_id:
+            continue
+        if score <= min_score:
             continue
         p = by_id[pid]
         if filter_status and p.status != config.EFFECTIVE_STATUS_VALID:
@@ -91,11 +92,13 @@ def retrieve_hybrid(
     rrf_k: int = config.RRF_K,
     filter_status: bool = True,
     min_dense_score: float = config.MIN_SCORE_TIN_CAY,
+    min_bm25_score: float = config.BM25_MIN_SCORE,
+    enable_entity: bool = True,
 ) -> list[RetrievalHit]:
     """Tìm kiếm kết hợp (Hybrid Search) giữa FAISS và BM25 bằng thuật toán RRF.
 
     Dùng điểm Cosine của FAISS làm ngưỡng kiểm tra: nếu câu hỏi gõ linh tinh hoặc
-    không liên quan đến luật (điểm cao nhất < 0.35) thì trả về rỗng để kích hoạt từ chối.
+    không liên quan đến luật (điểm cao nhất < 0.22) thì trả về rỗng để kích hoạt từ chối.
     """
     by_id = {p.provision_id: p for p in provisions}
     pool_k = min(len(provisions), candidate_pool_size)
@@ -121,7 +124,7 @@ def retrieve_hybrid(
     bm25_raw = bm25_index.search(query, top_k=pool_k)
     bm25_ranked_ids: list[str] = []
     for pid, score in bm25_raw:
-        if score > 0 and pid in by_id:
+        if score > min_bm25_score and pid in by_id:
             p = by_id[pid]
             if not filter_status or p.status == config.EFFECTIVE_STATUS_VALID:
                 bm25_ranked_ids.append(pid)
@@ -133,7 +136,7 @@ def retrieve_hybrid(
     target_khoan = khoan_match.group(1) if khoan_match else None
 
     entity_ranked_ids: list[str] = []
-    if target_dieu or target_khoan:
+    if enable_entity and (target_dieu or target_khoan):
         candidate_pool_set = list(dict.fromkeys(dense_ranked_ids + bm25_ranked_ids))
         entity_scored: list[tuple[str, int]] = []
         for pid in candidate_pool_set:

@@ -1,8 +1,25 @@
 from __future__ import annotations
 
+import logging
 import uuid
 
 import streamlit as st
+
+
+logger = logging.getLogger(__name__)
+USER_FACING_ERROR = "Không thể xử lý yêu cầu lúc này. Vui lòng thử lại sau."
+
+
+@st.cache_resource(show_spinner=False)
+def _get_cached_pipeline():
+    from pipeline import get_pipeline
+
+    return get_pipeline()
+
+
+def _safe_user_error() -> str:
+    logger.exception("RAG request failed")
+    return USER_FACING_ERROR
 
 
 def _render_user_msg(content: str) -> None:
@@ -11,43 +28,25 @@ def _render_user_msg(content: str) -> None:
         st.write(content)
 
 
-import re
-
 def _render_bot_content(content: str, sources: list[dict]) -> None:
     """Render nội dung câu trả lời bot bên trong một st.chat_message("assistant") context."""
     
-    used_indices = []
+    st.write(content)
+    
     if sources:
-        for i in range(len(sources)):
-            if f"[{i+1}]" in content:
-                used_indices.append(i)
-                
-    old_to_new = {old_i + 1: new_idx for new_idx, old_i in enumerate(used_indices, 1)}
-    
-    def replace_tag(match):
-        old_num = int(match.group(1))
-        if old_num in old_to_new:
-            return f"[{old_to_new[old_num]}]"
-        return match.group(0)
-
-    display_content = re.sub(r'\[(\d+)\]', replace_tag, content) if sources else content
-    st.write(display_content)
-    
-    if used_indices:
         st.divider()
         st.caption("**CĂN CỨ PHÁP LÝ**")
-        for new_idx, old_i in enumerate(used_indices, 1):
-            src = sources[old_i]
+        for new_idx, src in enumerate(sources, 1):
+            citation_index = src.get("citation_index", new_idx)
             law_code   = src.get("law_code", "")
             article_no = src.get("article_no", "")
             clause_no  = src.get("clause_no", "")
             raw_status = src.get("status", "hieu_luc")
             
-            # Sửa lỗi không xuống dòng: thay 1 dấu \n bằng 2 dấu \n để Markdown tách paragraph
             quote = src.get("text", "").replace("\n", "\n\n")
             
             law_name  = src.get("law_name", "Văn bản")
-            doc_title = f"{law_name} {law_code}".strip() if law_code else src.get("title", f"Nguồn {old_i+1}")
+            doc_title = f"{law_name} {law_code}".strip() if law_code else src.get("title", f"Nguồn {new_idx}")
             
             clause_parts = []
             if clause_no:
@@ -58,9 +57,13 @@ def _render_bot_content(content: str, sources: list[dict]) -> None:
                 clause_parts.append(a if a.lower().startswith("điều") else f"Điều {a}")
                 
             clause_text  = ", ".join(clause_parts) or src.get("title", "Chi tiết điều khoản")
-            status       = "Còn hiệu lực" if raw_status == "hieu_luc" else "Hết hiệu lực" if raw_status == "het_hieu_luc" else "Còn hiệu lực"
+            status       = "Còn hiệu lực"
+            if raw_status == "het_hieu_luc":
+                status = "Hết hiệu lực"
+            elif raw_status == "bi_sua_doi":
+                status = "Đã sửa đổi một phần"
             
-            with st.expander(f"[{new_idx}] {doc_title} - {clause_text} ({status})"):
+            with st.expander(f"[{citation_index}] {doc_title} - {clause_text} ({status})"):
                 st.markdown(quote)
                 
         st.caption("*Lưu ý: Câu trả lời được tổng hợp từ cơ sở dữ liệu pháp luật của hệ thống và chỉ mang tính chất tham khảo. Đối với các trường hợp cụ thể, nên đối chiếu với văn bản pháp luật hiện hành trước khi đưa ra quyết định.*")
@@ -75,7 +78,7 @@ def _render_bot_msg(message: dict) -> None:
 # API
 
 def render_chat_messages() -> None:
-    """Pure render: hiển thị lịch sử chat từ session_state. Không có side effects."""
+    """Chỉ hiển thị lịch sử chat từ session_state, không tạo tác động phụ."""
     for message in st.session_state.get("messages", []):
         if message["role"] == "user":
             _render_user_msg(message["content"])
@@ -88,7 +91,7 @@ def handle_chat_interaction(prompt: str) -> None:
     Render user message ngay lập tức, gọi RAG và render
     kết quả inline trong cùng lượt execution.
 
-    st.rerun() chỉ được gọi sau khi toàn bộ lượt xử lý hoàn tất, để sidebar
+    st.rerun() chỉ được gọi sau khi toàn bộ lượt xử lý hoàn tất, để thanh bên
     cập nhật recent_matters — không phải để render messages.
     """
 
@@ -102,17 +105,17 @@ def handle_chat_interaction(prompt: str) -> None:
     with st.chat_message("assistant"):
         with st.spinner("Đang tra cứu cơ sở dữ liệu pháp luật..."):
             try:
-                from pipeline import answer_rag
-                res           = answer_rag(prompt)
+                res           = _get_cached_pipeline().query(prompt)
+                res           = res.to_dict()
                 bot_content   = res.get("answer", "")
-                bot_sources   = res.get("citations", [])
+                bot_sources   = res.get("cited_documents", [])
                 active_alerts = res.get("active_alerts", [])
 
                 if active_alerts:
                     alert_msgs  = [f"[Cảnh báo hiệu lực văn bản] {a.get('message', '')}" for a in active_alerts]
                     bot_content = "\n\n".join(alert_msgs) + "\n\n---\n\n" + bot_content
-            except Exception as e:
-                bot_content = f"Lỗi kết nối Backend RAG: {e}"
+            except Exception:
+                bot_content = _safe_user_error()
                 bot_sources = []
 
         _render_bot_content(bot_content, bot_sources)

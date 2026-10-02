@@ -1,4 +1,4 @@
-"""evaluation/scripts/run_recall.py
+"""evaluation/scripts/metrics/run_recall.py
 
 Đo lường độ chính xác của tầng truy hồi (Retrieval) trên tập dev_set.json:
 - Tính Recall@1, Recall@3, Recall@5, Recall@10 trên 3 phương pháp:
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 # Đảm bảo chạy từ thư mục gốc
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -29,11 +29,13 @@ import numpy as np
 
 import config
 from ingestion.chunker import Provision, load_provisions
+from ingestion.utils import build_index_text
 from retrieval.bm25_index import Bm25Index
 from retrieval.embedder import get_embedder
 from retrieval.faiss_index import FaissFlatIndex
 from retrieval.retriever import retrieve, retrieve_bm25, retrieve_hybrid
 from evaluation.core.metrics import recall_at_k, hierarchical_article_recall_at_k
+from evaluation.core.utils import is_out_of_scope
 
 
 def load_dataset(dataset_path: Path) -> list[dict[str, Any]]:
@@ -51,17 +53,13 @@ def load_dataset(dataset_path: Path) -> list[dict[str, Any]]:
     raise ValueError("Định dạng file dev_set.json không hợp lệ.")
 
 
-# Sử dụng shared utility thay vì duplicate logic đọc chunks
-load_corpus = load_provisions
-
-
 def evaluate_system(
     questions: list[dict[str, Any]],
     provisions: list[Provision],
     embedder: Any,
     faiss_index: FaissFlatIndex,
     bm25_index: Bm25Index,
-    k_values: list[int] = [1, 3, 5, 10],
+    k_values: list[int] = [1, 3, 5, 10, 15],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Chạy đo lường toàn diện trên 3 chế độ: Dense, BM25, Hybrid."""
     results_by_mode: dict[str, dict[str, list[float]]] = {
@@ -73,7 +71,8 @@ def evaluate_system(
     eval_questions = []
     excluded_questions = []
     for q in questions:
-        if q.get("expected_behavior", "answer") == "answer":
+        out_of_scope = is_out_of_scope(q)
+        if out_of_scope is False:
             eval_questions.append(q)
         else:
             excluded_questions.append(q)
@@ -85,11 +84,13 @@ def evaluate_system(
         
     detailed_results: list[dict[str, Any]] = []
 
-    for q in eval_questions:
+    from tqdm import tqdm
+    print(f"Bắt đầu đánh giá Retrieval cho {len(eval_questions)} câu hỏi...")  
+    for q in tqdm(eval_questions, desc="Đánh giá câu hỏi"):
         q_id = q.get("id", "")
         q_group = q.get("group", "")
         query_text = q.get("question", "")
-        gold_ids = q.get("gold_ids") or q.get("ground_truth_provisions") or []
+        gold_ids = q.get("gold_ids") or []
 
         # 1. Chạy Dense
         dense_hits = retrieve(query_text, provisions, embedder, faiss_index, top_k=max(k_values))
@@ -103,13 +104,14 @@ def evaluate_system(
         hybrid_hits = retrieve_hybrid(query_text, provisions, embedder, faiss_index, bm25_index, top_k=max(k_values))
         hybrid_pids = [h.provision.provision_id for h in hybrid_hits]
 
-        # Tính metric 1 lần cho mỗi mode, tái sử dụng cho cả query_record và results_by_mode
-        mode_results: dict[str, dict[str, float]] = {}
-        for mode_name, pids in [
+        modes_to_evaluate = [
             ("Dense (FAISS)", dense_pids),
             ("Sparse (BM25)", bm25_pids),
             ("Hybrid (FAISS+BM25+RRF)", hybrid_pids),
-        ]:
+        ]
+
+        mode_results: dict[str, dict[str, float]] = {}
+        for mode_name, pids in modes_to_evaluate:
             mode_metrics: dict[str, float] = {}
             for k in k_values:
                 r_k = recall_at_k(gold_ids, pids, k)
@@ -129,6 +131,7 @@ def evaluate_system(
             "bm25": {"retrieved_ids": bm25_pids, **mode_results["Sparse (BM25)"]},
             "hybrid": {"retrieved_ids": hybrid_pids, **mode_results["Hybrid (FAISS+BM25+RRF)"]},
         }
+            
         detailed_results.append(query_record)
 
     summary: dict[str, Any] = {"total_evaluated_questions": len(eval_questions), "modes": {}}
@@ -142,20 +145,21 @@ def evaluate_system(
 
 def print_summary_table(summary: dict[str, Any]) -> None:
     """In bảng so sánh chỉ số trực quan ra màn hình."""
-    print("=" * 95)
+    print("=" * 105)
     print(f"BÁO CÁO ĐO LƯỜNG ĐỘ CHÍNH XÁC TRUY HỒI (RECALL) TRÊN {summary['total_evaluated_questions']} CÂU HỎI")
-    print("=" * 95)
-    print(f"{'Phương Pháp Truy Hồi':<36} | {'Recall@1':<10} | {'Recall@3':<10} | {'Recall@5':<10} | {'Recall@10':<10} | {'Article@5':<10}")
-    print("-" * 95)
+    print("=" * 105)
+    print(f"{'Phương Pháp Truy Hồi':<36} | {'Recall@1':<10} | {'Recall@3':<10} | {'Recall@5':<10} | {'Recall@10':<10} | {'Recall@15':<10} | {'Article@5':<10}")
+    print("-" * 105)
 
     for mode_name, metrics in summary["modes"].items():
         r1 = f"{metrics.get('recall@1', 0.0)*100:.2f}%"
         r3 = f"{metrics.get('recall@3', 0.0)*100:.2f}%"
         r5 = f"{metrics.get('recall@5', 0.0)*100:.2f}%"
         r10 = f"{metrics.get('recall@10', 0.0)*100:.2f}%"
+        r15 = f"{metrics.get('recall@15', 0.0)*100:.2f}%"
         art5 = f"{metrics.get('article_recall@5', 0.0)*100:.2f}%"
-        print(f"{mode_name:<36} | {r1:<10} | {r3:<10} | {r5:<10} | {r10:<10} | {art5:<10}")
-    print("=" * 95)
+        print(f"{mode_name:<36} | {r1:<10} | {r3:<10} | {r5:<10} | {r10:<10} | {r15:<10} | {art5:<10}")
+    print("=" * 105)
 
 def main() -> None:
     dataset_path = config.DATA_DIR / "evaluation" / "dev_set.json"
@@ -168,16 +172,18 @@ def main() -> None:
 
     print("Đang nạp dữ liệu và tài nguyên phục vụ đánh giá Recall...")
     questions = load_dataset(dataset_path)
-    provisions = load_corpus(chunks_path)
+    provisions = load_provisions(chunks_path)
 
     embedder = get_embedder()
-    faiss_index = FaissFlatIndex.load(faiss_index_path)
+    faiss_index = FaissFlatIndex.load(
+        faiss_index_path,
+        expected_dim=config.EMBEDDING_DIM,
+        expected_ids=[p.provision_id for p in provisions],
+        expected_model_name=getattr(embedder, "model_name", config.EMBEDDING_MODEL_NAME),
+    )
 
     # Khởi tạo chỉ mục BM25 với thông tin bổ sung (metadata) 
-    enriched_texts = [
-        f"[{p.law_code}] Điều {p.article_no}. {p.title}\n{f'Khoản {p.clause_no}. ' if p.clause_no else ''}{p.text}"
-        for p in provisions
-    ]
+    enriched_texts = [build_index_text(p) for p in provisions]
     bm25_index = Bm25Index(enriched_texts, [p.provision_id for p in provisions])
 
     summary, detailed_results = evaluate_system(questions, provisions, embedder, faiss_index, bm25_index)

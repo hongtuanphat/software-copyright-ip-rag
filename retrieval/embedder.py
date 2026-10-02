@@ -1,18 +1,11 @@
-"""
-retrieval/embedder.py
-
-Module mã hóa văn bản (Embedding).
-Sử dụng mô hình vietnamese-bi-encoder (SentenceTransformers),
-tự động chuyển sang HashingFallbackEmbedder nếu không có kết nối tới HuggingFace.
-"""
+"""SentenceTransformer embedding with strict initialization."""
 from __future__ import annotations
 
-import hashlib
-import re
 from typing import Protocol
 import numpy as np
 
 import config
+from ingestion.utils import tokenize_vietnamese
 
 
 class Embedder(Protocol):
@@ -29,47 +22,19 @@ class SentenceTransformerEmbedder:
 
         self.model_name = model_name
         self._model = SentenceTransformer(model_name)
+        self._model.max_seq_length = config.MAX_SEQ_LENGTH
 
     def encode(self, texts: list[str]) -> np.ndarray:
-        vecs = self._model.encode(texts, normalize_embeddings=True)
+        segmented_texts = [tokenize_vietnamese(text) for text in texts]
+        vecs = self._model.encode(segmented_texts, normalize_embeddings=True)
         return np.asarray(vecs, dtype=np.float32)
 
 
-class HashingFallbackEmbedder:
-    """Lớp fallback sinh vector dựa trên hashing khi chạy ở môi trường offline."""
-
-    DIM = 384
-
-    def __init__(self):
-        self.model_name = "hashing-fallback"
-
-    def encode(self, texts: list[str]) -> np.ndarray:
-        vecs = np.zeros((len(texts), self.DIM), dtype=np.float32)
-        for i, t in enumerate(texts):
-            vecs[i] = self._embed_one(t)
-        return vecs
-
-    def _embed_one(self, text: str) -> np.ndarray:
-        v = np.zeros(self.DIM, dtype=np.float32)
-        tokens = re.findall(r"\w+", text.lower())
-        for tok in tokens:
-            h = int(hashlib.md5(tok.encode("utf-8")).hexdigest(), 16)
-            idx = h % self.DIM
-            sign = 1.0 if (h // self.DIM) % 2 == 0 else -1.0
-            v[idx] += sign
-        norm = np.linalg.norm(v)
-        if norm > 0:
-            v = v / norm
-        return v
-
-
 def get_embedder() -> Embedder:
-    """Khởi tạo mô hình embedder thật hoặc lớp fallback nếu offline."""
+    """Initialize the configured embedder or fail loudly."""
     try:
         return SentenceTransformerEmbedder()
     except Exception as e:  # noqa: BLE001
-        print(
-            f"[Embedder] Không thể tải mô hình '{config.EMBEDDING_MODEL_NAME}' ({e}). "
-            "Kích hoạt HashingFallbackEmbedder."
-        )
-        return HashingFallbackEmbedder()
+        raise RuntimeError(
+            f"Không thể tải embedder '{config.EMBEDDING_MODEL_NAME}'."
+        ) from e
