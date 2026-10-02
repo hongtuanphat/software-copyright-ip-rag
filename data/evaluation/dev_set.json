@@ -2268,7 +2268,7 @@
     "id": "N4_071",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Sao chép phần mềm có bản quyền hàng loạt để bán kiếm lời thì có bị truy cứu trách nhiệm hình sự không và mức phạt cụ thể là bao nhiêu?",
     "gold_ids": [
       "67-VBHN-VPQH_Art212"
@@ -2292,7 +2292,7 @@
     "id": "N4_072",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Freelancer giao ứng dụng trễ hạn 3 tháng so với hợp đồng thì công ty được phạt vi phạm và đòi bồi thường tối đa bao nhiêu?",
     "gold_ids": [
       "67-VBHN-VPQH_Art50",
@@ -2323,7 +2323,7 @@
     "id": "N4_073",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Hành vi bẻ khóa phần mềm thương mại rồi chia sẻ công khai lên mạng Internet bị phạt tiền hành chính tối đa bao nhiêu triệu đồng đối với cá nhân?",
     "gold_ids": [
       "67-VBHN-VPQH_Art28_Kh4",
@@ -2354,7 +2354,7 @@
     "id": "N4_074",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Mức phạt tiền tối đa đối với tổ chức có hành vi nhập khẩu thiết bị lưu trữ nạp sẵn bản sao phần mềm lậu là bao nhiêu?",
     "gold_ids": [
       "67-VBHN-VPQH_Art213_Kh4",
@@ -2385,7 +2385,7 @@
     "id": "N4_075",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Công ty sử dụng phần mềm kế toán không có bản quyền trong hoạt động kinh doanh thì có bị áp dụng biện pháp khắc phục hậu quả là buộc tiêu hủy thiết bị phần cứng chứa phần mềm đó hay không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art214_Kh2",
@@ -2417,7 +2417,7 @@
     "id": "N4_076",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Lệ phí nhà nước cụ thể để cấp Giấy chứng nhận đăng ký quyền tác giả đối với một chương trình máy tính hiện nay là bao nhiêu tiền?",
     "gold_ids": [
       "67-VBHN-VPQH_Art49_Kh4",
@@ -2449,7 +2449,7 @@
     "id": "N4_077",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Khi nộp hồ sơ đăng ký bản quyền phần mềm, tờ khai đăng ký quyền tác giả phải sử dụng mẫu biểu số mấy và do cơ quan nào ban hành?",
     "gold_ids": [
       "17-2023-NĐ-CP_Art38_Kh6a"
@@ -2473,7 +2473,7 @@
     "id": "N4_078",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Khi phát triển một chương trình máy tính thương mại có tích hợp các đoạn mã nguồn mở sử dụng giấy phép GPL (General Public License) phiên bản 3.0, doanh nghiệp có bắt buộc phải công khai toàn bộ mã nguồn của chương trình thương mại đó theo quy định của pháp luật sở hữu trí tuệ hay không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art22_Kh1",
@@ -2505,7 +2505,7 @@
     "id": "N4_079",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Pháp nhân thương mại có hành vi cố ý phân phối trái phép bản sao chương trình máy tính thương phẩm quy mô lớn bị phạt tiền hình sự tối đa là bao nhiêu tỷ đồng?",
     "gold_ids": [
       "67-VBHN-VPQH_Art212"
@@ -2529,7 +2529,7 @@
     "id": "N4_080",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Cơ quan giám định về quyền tác giả phần mềm tại Việt Nam hiện nay có quyền đưa ra kết luận khẳng định một hành vi là xâm phạm quyền tác giả chương trình máy tính hay không?",
     "gold_ids": [
       "67-VBHN-VPQH_Art201_Kh5",
@@ -2561,7 +2561,7 @@
     "id": "N4_081",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Trong vụ án khởi kiện xâm phạm quyền tác giả chương trình máy tính, nguyên đơn phải tạm ứng án phí dân sự sơ thẩm là bao nhiêu phần trăm trên giá trị tranh chấp?",
     "gold_ids": [
       "67-VBHN-VPQH_Art198_Kh1"
@@ -2585,7 +2585,7 @@
     "id": "N4_082",
     "group": "Nhóm 4",
     "scope": "out_of_scope",
-    "expected_behavior": "refusal",
+    "expected_behavior": "refuse",
     "question": "Để yêu cầu Tòa án áp dụng biện pháp khẩn cấp tạm thời tạm dừng phân phối phần mềm vi phạm, bên yêu cầu có thể nộp thư bảo lãnh của ngân hàng nào tại Việt Nam để làm tài sản bảo đảm?",
     "gold_ids": [
       "67-VBHN-VPQH_Art208_Kh2"

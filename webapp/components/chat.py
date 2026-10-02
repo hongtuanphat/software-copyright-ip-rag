@@ -31,7 +31,8 @@ def _render_user_msg(content: str) -> None:
 def _render_bot_content(content: str, sources: list[dict]) -> None:
     """Render nội dung câu trả lời bot bên trong một st.chat_message("assistant") context."""
     
-    st.write(content)
+    formatted_content = content.replace('\n', '\n\n')
+    st.write(formatted_content)
     
     if sources:
         st.divider()
