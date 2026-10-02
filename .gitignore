@@ -28,6 +28,8 @@ evaluation/*_results.json
 evaluation/recall_results.json
 evaluation/results/*
 !evaluation/results/.gitkeep
+!evaluation/results/2026-10-02_18-18-21/
+!evaluation/results/2026-10-02_18-18-21/**
 
 # Held-out evaluation data is local and must not be used as tuning input.
 !data/evaluation/heldout_set.json

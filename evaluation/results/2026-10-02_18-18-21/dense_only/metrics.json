@@ -1,0 +1,594 @@
+{
+  "retrieval": {
+    "group_retrieval": {
+      "Nhóm 1": {
+        "sample_size": 25,
+        "clause_recall@1": {
+          "metric": "clause_recall@1",
+          "point_estimate": 0.17666666666666664,
+          "ci_lower": 0.06333333333333332,
+          "ci_upper": 0.3034166666666666,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@1": {
+          "metric": "article_recall@1",
+          "point_estimate": 0.33333333333333326,
+          "ci_lower": 0.1733333333333333,
+          "ci_upper": 0.52,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@3": {
+          "metric": "clause_recall@3",
+          "point_estimate": 0.42666666666666664,
+          "ci_lower": 0.2733333333333333,
+          "ci_upper": 0.6001666666666665,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@3": {
+          "metric": "article_recall@3",
+          "point_estimate": 0.4533333333333333,
+          "ci_lower": 0.2866666666666666,
+          "ci_upper": 0.6334999999999998,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@5": {
+          "metric": "clause_recall@5",
+          "point_estimate": 0.5,
+          "ci_lower": 0.34,
+          "ci_upper": 0.68,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@5": {
+          "metric": "article_recall@5",
+          "point_estimate": 0.5866666666666667,
+          "ci_lower": 0.42650000000000016,
+          "ci_upper": 0.7666666666666666,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@10": {
+          "metric": "clause_recall@10",
+          "point_estimate": 0.6233333333333333,
+          "ci_lower": 0.46,
+          "ci_upper": 0.7967499999999997,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@10": {
+          "metric": "article_recall@10",
+          "point_estimate": 0.7666666666666666,
+          "ci_lower": 0.62,
+          "ci_upper": 0.92,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        }
+      },
+      "Nhóm 2": {
+        "sample_size": 25,
+        "clause_recall@1": {
+          "metric": "clause_recall@1",
+          "point_estimate": 0.02,
+          "ci_lower": 0.0,
+          "ci_upper": 0.06,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@1": {
+          "metric": "article_recall@1",
+          "point_estimate": 0.02,
+          "ci_lower": 0.0,
+          "ci_upper": 0.06,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@3": {
+          "metric": "clause_recall@3",
+          "point_estimate": 0.12,
+          "ci_lower": 0.04,
+          "ci_upper": 0.22,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@3": {
+          "metric": "article_recall@3",
+          "point_estimate": 0.14,
+          "ci_lower": 0.04,
+          "ci_upper": 0.26,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@5": {
+          "metric": "clause_recall@5",
+          "point_estimate": 0.13333333333333333,
+          "ci_lower": 0.04666666666666666,
+          "ci_upper": 0.24,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@5": {
+          "metric": "article_recall@5",
+          "point_estimate": 0.15333333333333335,
+          "ci_lower": 0.05333333333333333,
+          "ci_upper": 0.28,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "clause_recall@10": {
+          "metric": "clause_recall@10",
+          "point_estimate": 0.2533333333333333,
+          "ci_lower": 0.11333333333333333,
+          "ci_upper": 0.4133333333333333,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        },
+        "article_recall@10": {
+          "metric": "article_recall@10",
+          "point_estimate": 0.32333333333333336,
+          "ci_lower": 0.16333333333333333,
+          "ci_upper": 0.5034166666666665,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 25
+        }
+      },
+      "Nhóm 3": {
+        "sample_size": 20,
+        "clause_recall@1": {
+          "metric": "clause_recall@1",
+          "point_estimate": 0.09166666666666666,
+          "ci_lower": 0.0,
+          "ci_upper": 0.21666666666666665,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "article_recall@1": {
+          "metric": "article_recall@1",
+          "point_estimate": 0.20416666666666666,
+          "ci_lower": 0.0625,
+          "ci_upper": 0.36666666666666664,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "clause_recall@3": {
+          "metric": "clause_recall@3",
+          "point_estimate": 0.275,
+          "ci_lower": 0.12083333333333332,
+          "ci_upper": 0.4375,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "article_recall@3": {
+          "metric": "article_recall@3",
+          "point_estimate": 0.2958333333333333,
+          "ci_lower": 0.12916666666666668,
+          "ci_upper": 0.46677083333333325,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "clause_recall@5": {
+          "metric": "clause_recall@5",
+          "point_estimate": 0.35,
+          "ci_lower": 0.17083333333333334,
+          "ci_upper": 0.5334374999999999,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "article_recall@5": {
+          "metric": "article_recall@5",
+          "point_estimate": 0.3958333333333333,
+          "ci_lower": 0.19583333333333333,
+          "ci_upper": 0.5916666666666666,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "clause_recall@10": {
+          "metric": "clause_recall@10",
+          "point_estimate": 0.3625,
+          "ci_lower": 0.18739583333333343,
+          "ci_upper": 0.5459374999999999,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        },
+        "article_recall@10": {
+          "metric": "article_recall@10",
+          "point_estimate": 0.4208333333333333,
+          "ci_lower": 0.2247916666666668,
+          "ci_upper": 0.6166666666666666,
+          "confidence_level": 0.95,
+          "n_resamples": 1000,
+          "sample_size": 20
+        }
+      }
+    },
+    "group_refusal": {
+      "Nhóm 4": {
+        "true_refusal": 8,
+        "false_accept": 4,
+        "true_accept": 0,
+        "false_refusal": 0,
+        "total": 12,
+        "trr": 66.67,
+        "frr": 0.0,
+        "far": 33.33,
+        "sample_size": 12,
+        "status_error_count": 0
+      },
+      "Nhóm 5a": {
+        "true_refusal": 5,
+        "false_accept": 0,
+        "true_accept": 0,
+        "false_refusal": 0,
+        "total": 5,
+        "trr": 100.0,
+        "frr": 0.0,
+        "far": 0.0,
+        "sample_size": 5,
+        "status_error_count": 0
+      },
+      "Nhóm 5b": {
+        "true_refusal": 5,
+        "false_accept": 0,
+        "true_accept": 0,
+        "false_refusal": 0,
+        "total": 5,
+        "trr": 100.0,
+        "frr": 0.0,
+        "far": 0.0,
+        "sample_size": 5,
+        "status_error_count": 0
+      },
+      "Nhóm 5c": {
+        "true_refusal": 2,
+        "false_accept": 2,
+        "true_accept": 0,
+        "false_refusal": 0,
+        "total": 4,
+        "trr": 50.0,
+        "frr": 0.0,
+        "far": 50.0,
+        "sample_size": 4,
+        "status_error_count": 0
+      },
+      "Nhóm 5d": {
+        "true_refusal": 4,
+        "false_accept": 0,
+        "true_accept": 0,
+        "false_refusal": 0,
+        "total": 4,
+        "trr": 100.0,
+        "frr": 0.0,
+        "far": 0.0,
+        "sample_size": 4,
+        "status_error_count": 0
+      }
+    },
+    "latency": {
+      "overall": {
+        "count": 100,
+        "mean_ms": 5221.0455,
+        "median_ms": 3023.995,
+        "p95_ms": 14344.566499999999
+      },
+      "gemini_called": {
+        "count": 56,
+        "mean_ms": 6064.849821428571,
+        "median_ms": 3218.425,
+        "p95_ms": 12619.625
+      },
+      "refusal_gate": {
+        "count": 44,
+        "mean_ms": 4147.112727272727,
+        "median_ms": 2203.7,
+        "p95_ms": 13668.026000000005
+      }
+    },
+    "retry": {
+      "observed_retry_count": 4,
+      "records_with_retry": 3
+    },
+    "error_analysis": [
+      {
+        "question_id": "N1_017",
+        "group": "Nhóm 1",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "in-scope request was refused despite correct context"
+        ]
+      },
+      {
+        "question_id": "N1_018",
+        "group": "Nhóm 1",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_030",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_031",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_033",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_036",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_037",
+        "group": "Nhóm 2",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "in-scope request was refused despite correct context"
+        ]
+      },
+      {
+        "question_id": "N2_042",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_043",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_044",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N2_046",
+        "group": "Nhóm 2",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_051",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_053",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_054",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_055",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_056",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_057",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_058",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_060",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N3_064",
+        "group": "Nhóm 3",
+        "category": "Retrieval Error",
+        "evidence": [
+          "gold document absent from retrieved_ids causing refusal"
+        ]
+      },
+      {
+        "question_id": "N4_075",
+        "group": "Nhóm 4",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      },
+      {
+        "question_id": "N4_076",
+        "group": "Nhóm 4",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      },
+      {
+        "question_id": "N4_077",
+        "group": "Nhóm 4",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      },
+      {
+        "question_id": "N4_082",
+        "group": "Nhóm 4",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      },
+      {
+        "question_id": "N5_094",
+        "group": "Nhóm 5c",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      },
+      {
+        "question_id": "N5_095",
+        "group": "Nhóm 5c",
+        "category": "Scope/Refusal Error",
+        "evidence": [
+          "out-of-scope request was answered (False Accept)"
+        ]
+      }
+    ],
+    "error_counts": {
+      "Scope/Refusal Error": 8,
+      "Retrieval Error": 18
+    }
+  },
+  "generation": {
+    "citation": {
+      "eval_records": 70,
+      "exact_match_rate": 20.0,
+      "citation_precision": 42.07,
+      "citation_recall": 36.31,
+      "article_exact_match_rate": 28.57,
+      "article_citation_precision": 47.5,
+      "article_citation_recall": 41.9,
+      "total_records": 100,
+      "success_count": 100,
+      "error_count": 0,
+      "success_rate": 100.0,
+      "failure_rate": 0.0
+    },
+    "refusal": {
+      "true_refusal": 24,
+      "false_accept": 6,
+      "true_accept": 50,
+      "false_refusal": 20,
+      "total": 100,
+      "trr": 80.0,
+      "frr": 28.57,
+      "far": 20.0,
+      "total_records": 100,
+      "success_count": 100,
+      "error_count": 0,
+      "success_rate": 100.0,
+      "failure_rate": 0.0
+    }
+  },
+  "performance": {
+    "latency": {
+      "overall": {
+        "count": 100,
+        "mean_ms": 5221.0455,
+        "median_ms": 3023.995,
+        "p95_ms": 14344.566499999999
+      },
+      "gemini_called": {
+        "count": 56,
+        "mean_ms": 6064.849821428571,
+        "median_ms": 3218.425,
+        "p95_ms": 12619.625
+      },
+      "refusal_gate": {
+        "count": 44,
+        "mean_ms": 4147.112727272727,
+        "median_ms": 2203.7,
+        "p95_ms": 13668.026000000005
+      }
+    },
+    "reliability": {
+      "retry_stats": {
+        "observed_retry_count": 4,
+        "records_with_retry": 3
+      },
+      "error_counts": {
+        "Scope/Refusal Error": 8,
+        "Retrieval Error": 18
+      }
+    }
+  }
+}

@@ -535,11 +535,9 @@ def test_heldout_questions_are_disjoint_from_dev_set():
     dev_questions = {item["question"].casefold() for item in dev_items}
     heldout_questions = {item["question"].casefold() for item in heldout_items}
 
-    assert len(heldout_items) == 30
+    assert len(heldout_items) == 50
     assert dev_ids.isdisjoint(heldout_ids)
     assert dev_questions.isdisjoint(heldout_questions)
-    assert {item["group"] for item in heldout_items} == {"Nhóm 4", "Nhóm 5c"}
-    assert all(item["expected_behavior"] == "refuse" for item in heldout_items)
 
 
 

@@ -40,7 +40,12 @@ def get_api_key() -> Optional[str]:
     return key_to_use
 
 
-def generate(prompt: str) -> dict:
+def generate(
+    query_or_prompt: str,
+    prompt: Optional[str] = None,
+    hits: Optional[list[RetrievalHit]] = None,
+) -> dict:
+    actual_prompt = prompt if prompt is not None else query_or_prompt
     """Gọi Gemini với retry giới hạn cho các lỗi tạm thời."""
     first_api_key = get_api_key()
     if not first_api_key:
@@ -52,7 +57,7 @@ def generate(prompt: str) -> dict:
         if not api_key:
             raise RuntimeError("Thiếu GEMINI_API_KEY; không thể sinh câu trả lời.")
         try:
-            answer_text = _call_gemini(prompt, api_key)
+            answer_text = _call_gemini(actual_prompt, api_key)
             if not answer_text:
                 raise RuntimeError("Gemini trả về phản hồi rỗng.")
             return json.loads(answer_text)

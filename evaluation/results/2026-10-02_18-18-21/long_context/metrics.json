@@ -1,0 +1,33 @@
+{
+  "performance": {
+    "latency": {
+      "overall": {
+        "count": 100,
+        "mean_ms": 7065.338799999999,
+        "median_ms": 6299.4349999999995,
+        "p95_ms": 14414.541
+      },
+      "gemini_called": {
+        "count": 79,
+        "mean_ms": 6845.509620253165,
+        "median_ms": 5998.77,
+        "p95_ms": 14427.651999999998
+      },
+      "refusal_gate": {
+        "count": 21,
+        "mean_ms": 7892.315238095238,
+        "median_ms": 7919.21,
+        "p95_ms": 12925.99
+      }
+    },
+    "reliability": {
+      "retry_stats": {
+        "observed_retry_count": 0,
+        "records_with_retry": 0
+      },
+      "error_counts": {
+        "Scope/Refusal Error": 4
+      }
+    }
+  }
+}

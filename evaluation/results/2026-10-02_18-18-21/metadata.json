@@ -1,0 +1,22 @@
+{
+  "run_id": "2026-10-02_18-18-21",
+  "commit_hash": "dd9e4fa",
+  "date": "2026-10-02T14:23:57.547310+00:00",
+  "embedder_model_name": "bkai-foundation-models/vietnamese-bi-encoder",
+  "llm_model_name": "gemini-3.5-flash-lite",
+  "vector_dim": 768,
+  "dataset": "data/evaluation/dev_set.json",
+  "dataset_split": "dev",
+  "num_questions": 100,
+  "baseline_mode": "dense-only",
+  "ablation_flags": {
+    "disable_entity": false,
+    "semantic_only_gate": false
+  },
+  "config": {
+    "top_k": 10,
+    "rrf_k": 15,
+    "min_dense_score": 0.22,
+    "max_distractor_ratio": 0.6
+  }
+}

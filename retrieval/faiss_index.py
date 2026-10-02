@@ -93,6 +93,8 @@ class FaissFlatIndex:
         if expected_ids is not None and ids != expected_ids:
             raise ValueError("Mapping provision_id của FAISS index không khớp corpus hiện tại.")
         metadata_path = Path(str(idx_p) + ".metadata.json")
+        if not metadata_path.exists():
+            metadata_path = Path(str(idx_p) + ".meta.json")
         if expected_model_name is not None:
             if not metadata_path.exists():
                 raise ValueError("FAISS index thiếu metadata model_name.")
