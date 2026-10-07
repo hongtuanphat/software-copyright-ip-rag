@@ -111,7 +111,7 @@ def classify_query_intent(query: str, timeout_ms: int = 15000) -> IntentClassifi
             config=types.GenerateContentConfig(
                 system_instruction=INTENT_SYSTEM_PROMPT,
                 temperature=0.0,
-                max_output_tokens=350,
+                max_output_tokens=1024,
                 response_mime_type="application/json",
                 response_schema=IntentClassificationResult,
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
