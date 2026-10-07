@@ -1,4 +1,4 @@
-"""config.py
+﻿"""config.py
 
 Tập hợp tất cả các thông số cấu hình và đường dẫn dùng chung trong toàn bộ hệ thống RAG.
 Giúp dễ dàng tùy chỉnh mô hình, ngưỡng lọc và đường dẫn lưu trữ tại một nơi duy nhất.
@@ -18,8 +18,6 @@ load_dotenv(BASE_DIR / ".env")
 DATA_DIR = BASE_DIR / "data"
 DATA_RAW_DIR = DATA_DIR / "raw"
 DATA_PROCESSED_DIR = DATA_DIR / "processed"
-
-# Đường dẫn file dữ liệu thô và file metadata hiệu lực văn bản
 
 # Đường dẫn các file đầu ra đã qua xử lý (chunks, testset, vector index, alerts)
 CHUNKS_PATH = DATA_PROCESSED_DIR / "chunks.jsonl"
@@ -51,6 +49,9 @@ CANDIDATE_POOL_SIZE = 100       # Số lượng ứng viên lấy từ mỗi nh�
 MIN_SCORE_TIN_CAY = 0.22      # Điểm tương đồng ngữ nghĩa tối thiểu (Cosine Similarity) để xem kết quả là đáng tin
 MAX_DISTRACTOR_RATIO = 0.6    # Tỷ lệ tối đa các đoạn distractor trong top-k
 BM25_MIN_SCORE = 0.0          # BM25 chỉ cung cấp evidence khi có điểm dương
+
+# Cơ chế phân loại ý định câu hỏi và kiểm soát từ chối mềm (Soft Refusal)
+ENABLE_LLM_INTENT_CLASSIFIER = True  # Sử dụng mô hình ngôn ngữ để hiểu ngữ cảnh và chỉ dẫn pháp lý khi từ chối
 
 EFFECTIVE_STATUS_VALID = "hieu_luc"
 PARTIALLY_AMENDED_ARTICLES = {

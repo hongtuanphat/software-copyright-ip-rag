@@ -17,6 +17,7 @@ import config
 from generation.llm import generate
 from generation.prompt_builder import build_prompt
 from generation.refusal_gate import decide
+from generation.intent_classifier import classify_query_intent
 from generation.citation import build_citations
 from ingestion.chunker import Provision
 from ingestion.utils import build_index_text
@@ -126,7 +127,21 @@ class RAGPipeline:
                     refusal_reason="Dữ liệu chưa sẵn sàng.",
                 )
 
-        # 1. Tìm kiếm đoạn luật liên quan theo chế độ được chọn
+        # 1. Kiểm tra ý định câu hỏi và xử lý từ chối mềm (nếu được kích hoạt)
+        if getattr(config, "ENABLE_LLM_INTENT_CLASSIFIER", False):
+            intent_res = classify_query_intent(question)
+            if intent_res.should_refuse:
+                elapsed_ms = (time.time() - start_time) * 1000.0
+                active_alerts = get_active_alerts()
+                return RAGResponse(
+                    question=question,
+                    answer=intent_res.suggested_response,
+                    should_refuse=True,
+                    refusal_reason=f"[{intent_res.intent.value}] {intent_res.reason}",
+                    execution_time_ms=elapsed_ms,
+                    active_alerts=active_alerts,
+                )
+
         if self.mode == "hybrid" and self.bm25_index is not None and self.faiss_index is not None:
             hits = retrieve_hybrid(
                 question,
@@ -144,7 +159,7 @@ class RAGPipeline:
         else:
             raise ValueError(f"Chế độ tìm kiếm không hợp lệ hoặc chỉ mục bị thiếu: mode='{self.mode}'")
 
-        # 2. Kiểm tra câu hỏi qua bộ lọc từ chối
+        # 3. Kiểm tra độ tin cậy kết quả qua cổng từ chối (Refusal Gate)
         decision = decide(question, hits, use_keywords=self.use_keywords)
         active_alerts = get_active_alerts()
 

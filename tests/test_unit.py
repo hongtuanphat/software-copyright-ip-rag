@@ -192,3 +192,143 @@ def test_hybrid_drops_candidate_that_only_has_zero_bm25_score():
     )
 
     assert [hit.provision.provision_id for hit in hits] == ["P1"]
+
+
+# ==============================================================================
+# KIỂM THỬ BỘ PHÂN LOẠI Ý ĐỊNH VÀ CỔNG TỪ CHỐI MỀM (INTENT CLASSIFIER)
+# ==============================================================================
+def test_intent_classifier_in_scope(monkeypatch):
+    from generation.intent_classifier import (
+        classify_query_intent,
+        IntentCategory,
+        ResponseMode,
+    )
+    import generation.intent_classifier as ic
+
+    monkeypatch.setattr(ic, "get_api_key", lambda: "mock-key")
+    
+    mock_payload = '{"intent": "IN_SCOPE", "response_mode": "ANSWER", "should_refuse": false, "reason": "Hợp lệ", "suggested_response": ""}'
+    
+    class MockClient:
+        def __init__(self, **kwargs):
+            self.models = self
+        def generate_content(self, **kwargs):
+            class Resp:
+                text = mock_payload
+            return Resp()
+            
+    monkeypatch.setattr(ic.genai, "Client", MockClient)
+    
+    result = classify_query_intent("Quyền tài sản đối với chương trình máy tính là gì?")
+    assert result.intent == IntentCategory.IN_SCOPE
+    assert result.response_mode == ResponseMode.ANSWER
+    assert result.should_refuse is False
+
+
+def test_intent_classifier_soft_refusal_document_referral(monkeypatch):
+    from generation.intent_classifier import (
+        classify_query_intent,
+        IntentCategory,
+        ResponseMode,
+    )
+    import generation.intent_classifier as ic
+
+    monkeypatch.setattr(ic, "get_api_key", lambda: "mock-key")
+    
+    referral_text = "Nội dung phạt tiền quy định tại Nghị định 131/2013/NĐ-CP."
+    mock_payload = f'{{"intent": "OUT_OF_SCOPE_SPECIFIC", "response_mode": "SOFT_REFUSE_REFERRAL", "should_refuse": true, "reason": "Mức phạt NĐ 131", "suggested_response": "{referral_text}"}}'
+    
+    class MockClient:
+        def __init__(self, **kwargs):
+            self.models = self
+        def generate_content(self, **kwargs):
+            class Resp:
+                text = mock_payload
+            return Resp()
+            
+    monkeypatch.setattr(ic.genai, "Client", MockClient)
+    
+    result = classify_query_intent("Mức phạt vi phạm bản quyền phần mềm tối đa bao nhiêu?")
+    assert result.intent == IntentCategory.OUT_OF_SCOPE_SPECIFIC
+    assert result.response_mode == ResponseMode.SOFT_REFUSE_REFERRAL
+    assert result.should_refuse is True
+    assert "131/2013" in result.suggested_response
+
+
+def test_intent_classifier_soft_refusal_false_premise_clarify(monkeypatch):
+    from generation.intent_classifier import (
+        classify_query_intent,
+        IntentCategory,
+        ResponseMode,
+    )
+    import generation.intent_classifier as ic
+
+    monkeypatch.setattr(ic, "get_api_key", lambda: "mock-key")
+    
+    clarify_text = "Căn cứ Khoản 1 Điều 12a, AI không thể đứng tên tác giả."
+    mock_payload = f'{{"intent": "FALSE_PREMISE", "response_mode": "SOFT_REFUSE_CLARIFY", "should_refuse": true, "reason": "AI không là tác giả", "suggested_response": "{clarify_text}"}}'
+    
+    class MockClient:
+        def __init__(self, **kwargs):
+            self.models = self
+        def generate_content(self, **kwargs):
+            class Resp:
+                text = mock_payload
+            return Resp()
+            
+    monkeypatch.setattr(ic.genai, "Client", MockClient)
+    
+    result = classify_query_intent("ChatGPT có được đứng tên tác giả phần mềm không?")
+    assert result.intent == IntentCategory.FALSE_PREMISE
+    assert result.response_mode == ResponseMode.SOFT_REFUSE_CLARIFY
+    assert result.should_refuse is True
+    assert "Điều 12a" in result.suggested_response
+
+
+def test_intent_classifier_fallback_on_api_error(monkeypatch):
+    from generation.intent_classifier import classify_query_intent, IntentCategory
+    import generation.intent_classifier as ic
+
+    monkeypatch.setattr(ic, "get_api_key", lambda: "mock-key")
+    
+    class FailingClient:
+        def __init__(self, **kwargs):
+            self.models = self
+        def generate_content(self, **kwargs):
+            raise RuntimeError("API quota exceeded")
+            
+    monkeypatch.setattr(ic.genai, "Client", FailingClient)
+    
+    # Khi gặp lỗi API, hệ thống fallback coi như IN_SCOPE và tiếp tục chuyển tiếp
+    result = classify_query_intent("Một câu hỏi bất kỳ")
+    assert result.intent == IntentCategory.IN_SCOPE
+    assert result.should_refuse is False
+
+
+def test_refusal_gate_allows_valid_labor_contract_for_software():
+    from generation.refusal_gate import decide
+    from retrieval.retriever import RetrievalHit
+    from ingestion.chunker import Provision
+
+    mock_p = Provision(
+        provision_id="67_Art39",
+        law_code="67/VBHN-VPQH",
+        article_no="39",
+        clause_no="1",
+        title="Chủ sở hữu quyền tác giả khi giao kết hợp đồng",
+        text="Tổ chức giao nhiệm vụ sáng tạo tác phẩm...",
+        topic="in_scope",
+        is_distractor=False,
+        source_url="http://test"
+    )
+    hits = [RetrievalHit(provision=mock_p, score=0.85)]
+
+    # Câu hỏi hợp lệ về phần mềm sáng tạo theo hợp đồng lao động (Điều 39)
+    valid_query = "Lập trình viên viết phần mềm theo hợp đồng lao động thì ai sở hữu bản quyền tài sản?"
+    decision = decide(valid_query, hits=hits, use_keywords=True)
+    assert decision.should_refuse is False, "Không được từ chối câu hỏi hợp lệ về phần mềm theo hợp đồng lao động"
+
+    # Câu hỏi ngoài phạm vi về lao động (sa thải thuần túy) phải bị từ chối
+    out_query = "Thủ tục sa thải người lao động theo luật lao động?"
+    decision_out = decide(out_query, hits=[], use_keywords=True)
+    assert decision_out.should_refuse is True, "Phải từ chối câu hỏi thuần túy về sa thải lao động"
