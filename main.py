@@ -161,9 +161,12 @@ def answer_question(item: dict, pipeline) -> None:
     for h in res.retrieval_hits:
         flag = " [DISTRACTOR]" if h.get("is_distractor") else ""
         clause_tag = f" Khoản {h.get('clause_no')}" if h.get("clause_no") else ""
-        print(f"   score={h.get('score', 0):.4f}  Điều {h.get('article_no')}{clause_tag}{flag}  {h.get('title')}")
+        law_tag = f" ({h.get('law_code')})" if h.get("law_code") else ""
+        print(f"   score={h.get('score', 0):.4f}  Điều {h.get('article_no')}{clause_tag}{law_tag}{flag}  {h.get('title')}")
 
     print(f"-> Refusal gate: should_refuse={res.should_refuse} | lý do: {res.refusal_reason}")
+    print(f"-> LLM thô (decision): {getattr(res, 'llm_decision', 'N/A')}")
+    print(f"-> LLM thô (used_documents): {getattr(res, 'used_documents', [])}")
 
     if res.should_refuse:
         print(">> TỪ CHỐI TRẢ LỜI (Kích hoạt Refusal Gate hoặc LLM Dynamic Refusal).")
@@ -179,7 +182,9 @@ def answer_question(item: dict, pipeline) -> None:
     for doc in res.cited_documents:
         c_clause = doc.get('clause_no')
         c_tag = f" Khoản {c_clause}" if c_clause else ""
-        print(f"   - Điều {doc.get('article_no')}{c_tag}: {doc.get('title')}")
+        law_name = doc.get('law_name') or doc.get('law_code') or ""
+        law_tag = f" ({law_name})" if law_name else ""
+        print(f"   - Điều {doc.get('article_no')}{c_tag}{law_tag}: {doc.get('title')}")
     print()
 
 

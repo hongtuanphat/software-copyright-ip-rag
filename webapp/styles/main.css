@@ -25,6 +25,49 @@ html, body, [class*="stApp"] {
     text-overflow: unset !important;
 }
 
+/* Hiển thị câu trả lời như các đoạn văn thay vì một chuỗi dày chữ. */
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    color: #1e293b;
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p {
+    margin: 0 0 0.85rem;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] ul {
+    margin: 0.25rem 0 1rem;
+    padding-left: 1.35rem;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] li {
+    margin: 0.35rem 0;
+}
+
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] strong {
+    color: #172554;
+}
+
+/* Căn cứ pháp lý là văn bản nguồn dài, cần tự xuống dòng trong expander. */
+[data-testid="stExpander"] .legal-quote {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    color: #334155;
+    font-size: 0.98rem;
+    line-height: 1.75;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+[data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 /* Primary Button (Sidebar "Đoạn chat mới") */
 button[kind="primary"] {
     background-color: #f1f5f9;

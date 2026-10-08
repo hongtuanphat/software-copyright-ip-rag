@@ -9,9 +9,7 @@ Các hàm tìm kiếm văn bản pháp luật:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 import re
-import numpy as np
 
 import config
 from ingestion.chunker import Provision
@@ -102,9 +100,17 @@ def retrieve_hybrid(
     """
     by_id = {p.provision_id: p for p in provisions}
     pool_k = min(len(provisions), candidate_pool_size)
+    
+    # Mở rộng câu hỏi (Query Expansion) bằng Từ điển đồng nghĩa
+    expanded_query = query
+    for category, terms in config.LEGAL_SYNONYMS.items():
+        for keyword, synonyms in terms.items():
+            if re.search(r"\b" + re.escape(keyword) + r"\b", query, re.IGNORECASE):
+                # Join the list of legal synonyms and append them
+                expanded_query += " " + " ".join(synonyms)
 
     # 1. Tìm các ứng viên bằng vector FAISS
-    q_vec = embedder.encode([query])
+    q_vec = embedder.encode([expanded_query])
     dense_raw = faiss_index.search(q_vec, top_k=pool_k)
 
     # Kiểm tra điểm tương đồng cao nhất của câu hỏi
@@ -117,32 +123,50 @@ def retrieve_hybrid(
         # Chỉ lấy các vector có độ tương quan dương
         if score > 0.0 and pid in by_id:
             p = by_id[pid]
+            if p.is_distractor:
+                continue
             if not filter_status or p.status == config.EFFECTIVE_STATUS_VALID:
                 dense_ranked_ids.append(pid)
 
     # 2. Tìm các ứng viên bằng từ khóa BM25
-    bm25_raw = bm25_index.search(query, top_k=pool_k)
+    bm25_raw = bm25_index.search(expanded_query, top_k=pool_k)
     bm25_ranked_ids: list[str] = []
     for pid, score in bm25_raw:
         if score > min_bm25_score and pid in by_id:
             p = by_id[pid]
+            if p.is_distractor:
+                continue
             if not filter_status or p.status == config.EFFECTIVE_STATUS_VALID:
                 bm25_ranked_ids.append(pid)
 
-    # 3. Ưu tiên các đoạn luật khớp số Điều/Khoản nếu câu hỏi có nhắc tới
     dieu_match = re.search(r"\b(?:điều|dieu)\s+(\d+[a-zA-Z]?)\b", query, re.IGNORECASE)
     khoan_match = re.search(r"\b(?:khoản|khoan)\s+(\d+)\b", query, re.IGNORECASE)
-    target_dieu = dieu_match.group(1).lower() if dieu_match else None
+    
+    target_dieus = []
+    if dieu_match:
+        target_dieus.append(dieu_match.group(1).lower())
+        
     target_khoan = khoan_match.group(1) if khoan_match else None
 
+    target_law_codes = []
+    if re.search(r"luật shtt|luật sở hữu trí tuệ", query, re.IGNORECASE):
+        target_law_codes.append("67/VBHN-VPQH")
+    if re.search(r"nghị định 17|nđ 17|nd 17", query, re.IGNORECASE):
+        target_law_codes.append("17/2023/ND-CP")
+    if re.search(r"nghị định 134|nđ 134|nd 134", query, re.IGNORECASE):
+        target_law_codes.append("134/2026/ND-CP")
+
     entity_ranked_ids: list[str] = []
-    if enable_entity and (target_dieu or target_khoan):
+    if enable_entity and (target_dieus or target_khoan):
         candidate_pool_set = list(dict.fromkeys(dense_ranked_ids + bm25_ranked_ids))
         entity_scored: list[tuple[str, int]] = []
         for pid in candidate_pool_set:
             p = by_id[pid]
+            if target_law_codes and p.law_code not in target_law_codes:
+                continue
+                
             score_e = 0
-            if target_dieu and p.article_no.lower() == target_dieu:
+            if p.article_no.lower() in target_dieus:
                 score_e += 2
                 if target_khoan and p.clause_no == target_khoan:
                     score_e += 3
@@ -172,9 +196,22 @@ def retrieve_hybrid(
     sorted_pids = sorted(rrf_scores.keys(), key=lambda pid: rrf_scores[pid], reverse=True)
 
     hits: list[RetrievalHit] = []
+    included_ids = set()
+
     for pid in sorted_pids[:top_k]:
+        if pid in included_ids:
+            continue
+            
         p = by_id[pid]
         final_score = rrf_scores[pid]
         hits.append(RetrievalHit(provision=p, score=round(final_score, 6)))
+        included_ids.add(pid)
+        
+        # Article expansion: kéo thêm các khoản còn lại của cùng Điều (chỉ áp dụng cho Luật SHTT)
+        if p.law_code == "67/VBHN-VPQH":
+            for other_p in provisions:
+                if other_p.provision_id not in included_ids and other_p.law_code == p.law_code and other_p.article_no == p.article_no:
+                    hits.append(RetrievalHit(provision=other_p, score=round(final_score - 0.0001, 6)))
+                    included_ids.add(other_p.provision_id)
 
     return hits

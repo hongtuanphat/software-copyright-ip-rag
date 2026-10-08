@@ -41,6 +41,8 @@ class RAGResponse:
     cited_documents: list[dict[str, Any]] = field(default_factory=list)
     execution_time_ms: float = 0.0
     active_alerts: list[dict[str, Any]] = field(default_factory=list)
+    used_documents: list[str] = field(default_factory=list)
+    llm_decision: str = ""
 
     @property
     def is_refused(self) -> bool:
@@ -237,6 +239,8 @@ class RAGPipeline:
                 cited_documents=[],
                 execution_time_ms=elapsed_ms,
                 active_alerts=active_alerts,
+                used_documents=used_ids,
+                llm_decision=decision_str,
             )
 
         elapsed_ms = (time.time() - start_time) * 1000.0
@@ -251,6 +255,8 @@ class RAGPipeline:
             cited_documents=cited_documents,
             execution_time_ms=elapsed_ms,
             active_alerts=active_alerts,
+            used_documents=used_ids,
+            llm_decision=decision_str,
         )
 
 

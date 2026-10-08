@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import html
 import logging
+import re
 import uuid
 
 import streamlit as st
@@ -10,11 +12,19 @@ logger = logging.getLogger(__name__)
 USER_FACING_ERROR = "Không thể xử lý yêu cầu lúc này. Vui lòng thử lại sau."
 
 
-@st.cache_resource(show_spinner=False)
-def _get_cached_pipeline():
-    from pipeline import get_pipeline
+def _format_answer_markdown(content: str) -> str:
+    """Chuẩn hóa câu trả lời để Markdown hiển thị đúng đoạn và danh sách."""
+    formatted = content.replace("\r\n", "\n").replace("\\n", "\n").strip()
+    formatted = re.sub(r"[ \t]+\n", "\n", formatted)
+    formatted = re.sub(r"\n{3,}", "\n\n", formatted)
 
-    return get_pipeline()
+    # Tương thích với câu trả lời cũ thường đặt tiêu đề mục trên cùng một dòng.
+    formatted = re.sub(
+        r"\s+-\s+(?=(?:\*\*)?(?:Quyền|Đối với|Thời điểm|Căn cứ|Lưu ý)\b)",
+        "\n\n- ",
+        formatted,
+    )
+    return formatted
 
 
 def _safe_user_error() -> str:
@@ -30,9 +40,8 @@ def _render_user_msg(content: str) -> None:
 
 def _render_bot_content(content: str, sources: list[dict]) -> None:
     """Render nội dung câu trả lời bot bên trong một st.chat_message("assistant") context."""
-    
-    formatted_content = content.replace('\n', '\n\n')
-    st.write(formatted_content)
+
+    st.markdown(_format_answer_markdown(content))
     
     if sources:
         st.divider()
@@ -44,10 +53,10 @@ def _render_bot_content(content: str, sources: list[dict]) -> None:
             clause_no  = src.get("clause_no", "")
             raw_status = src.get("status", "hieu_luc")
             
-            quote = src.get("text", "").replace("\n", "\n\n")
+            quote = src.get("text", "").replace("\r\n", "\n").replace("\\n", "\n").strip()
             
-            law_name  = src.get("law_name", "Văn bản")
-            doc_title = f"{law_name} {law_code}".strip() if law_code else src.get("title", f"Nguồn {new_idx}")
+            law_name  = src.get("law_name", "")
+            doc_title = law_name if law_name else (law_code or src.get("title", f"Nguồn {new_idx}"))
             
             clause_parts = []
             if clause_no:
@@ -65,7 +74,12 @@ def _render_bot_content(content: str, sources: list[dict]) -> None:
                 status = "Đã sửa đổi một phần"
             
             with st.expander(f"[{citation_index}] {doc_title} - {clause_text} ({status})"):
-                st.markdown(quote)
+                # Đây là văn bản nguồn, không phải Markdown do mô hình sinh ra.
+                # Escape HTML để quote không thể chèn markup vào giao diện.
+                st.markdown(
+                    f'<div class="legal-quote">{html.escape(quote).replace(chr(10), "<br>")}</div>',
+                    unsafe_allow_html=True,
+                )
                 
         st.caption("*Lưu ý: Câu trả lời được tổng hợp từ cơ sở dữ liệu pháp luật của hệ thống và chỉ mang tính chất tham khảo. Đối với các trường hợp cụ thể, nên đối chiếu với văn bản pháp luật hiện hành trước khi đưa ra quyết định.*")
 
@@ -102,19 +116,28 @@ def handle_chat_interaction(prompt: str) -> None:
     # 2. Render user message ngay — user thấy câu hỏi trước khi RAG chạy
     _render_user_msg(prompt)
 
-    # 3. Gọi RAG và render assistant response ngay bên dưới câu hỏi
+    # 3. Gọi RAG API và render assistant response ngay bên dưới câu hỏi
     with st.chat_message("assistant"):
         with st.spinner("Đang tra cứu cơ sở dữ liệu pháp luật..."):
             try:
-                res           = _get_cached_pipeline().query(prompt)
-                res           = res.to_dict()
-                bot_content   = res.get("answer", "")
-                bot_sources   = res.get("cited_documents", [])
-                active_alerts = res.get("active_alerts", [])
-
-                if active_alerts:
-                    alert_msgs  = [f"[Cảnh báo hiệu lực văn bản] {a.get('message', '')}" for a in active_alerts]
-                    bot_content = "\n\n".join(alert_msgs) + "\n\n---\n\n" + bot_content
+                import requests
+                api_url = "http://127.0.0.1:8000/chat"
+                response = requests.post(api_url, json={"prompt": prompt}, timeout=60)
+                
+                if response.status_code == 200:
+                    res = response.json()
+                    bot_content   = res.get("answer", "")
+                    bot_sources   = res.get("cited_documents", [])
+                    active_alerts = res.get("active_alerts", [])
+    
+                    if active_alerts:
+                        alert_msgs  = [f"[Cảnh báo hiệu lực văn bản] {a.get('message', '')}" for a in active_alerts]
+                        bot_content = "\n\n".join(alert_msgs) + "\n\n---\n\n" + bot_content
+                else:
+                    logger.error(f"API Error: {response.text}")
+                    bot_content = USER_FACING_ERROR
+                    bot_sources = []
+                    
             except Exception:
                 bot_content = _safe_user_error()
                 bot_sources = []
@@ -138,4 +161,3 @@ def handle_chat_interaction(prompt: str) -> None:
         matter = new_id
 
     st.session_state["chats"][matter] = st.session_state["messages"].copy()
-

@@ -1,4 +1,4 @@
-﻿"""config.py
+"""config.py
 
 Tập hợp tất cả các thông số cấu hình và đường dẫn dùng chung trong toàn bộ hệ thống RAG.
 Giúp dễ dàng tùy chỉnh mô hình, ngưỡng lọc và đường dẫn lưu trữ tại một nơi duy nhất.
@@ -59,6 +59,94 @@ PARTIALLY_AMENDED_ARTICLES = {
         "1", "5", "8", "22", "23", "25", "29", "38", "39", "40",
         "41", "43", "71", "84", "87", "88", "98", "99", "110",
     },
+}
+
+LEGAL_SYNONYMS = {
+  "doi_tuong": {
+    "phần mềm":            ["chương trình máy tính"],
+    "ứng dụng":            ["chương trình máy tính"],
+    "app":                 ["chương trình máy tính"],
+    "software":            ["chương trình máy tính"],
+    "source code":         ["mã nguồn", "chương trình máy tính"],
+    "code":                ["mã nguồn"],
+    "file chạy":           ["mã máy"],
+    "database":            ["sưu tập dữ liệu"],
+    "cơ sở dữ liệu":       ["sưu tập dữ liệu"],
+    "bộ dữ liệu":          ["sưu tập dữ liệu"],
+    "ngôn ngữ lập trình":  ["chương trình máy tính", "mã nguồn"]
+  },
+  "chu_the": {
+    "bản quyền":           ["quyền tác giả"],
+    "lập trình viên":      ["tác giả"],
+    "dev":                 ["tác giả"],
+    "người viết code":     ["tác giả"],
+    "nhóm phát triển":     ["đồng tác giả"],
+    "ai sở hữu":           ["chủ sở hữu quyền tác giả"],
+    "ai là chủ":           ["chủ sở hữu quyền tác giả"],
+    "ai có quyền":         ["chủ sở hữu quyền tác giả", "quyền tài sản"],
+    "công ty":             ["tổ chức"],
+    "doanh nghiệp":        ["tổ chức"]
+  },
+  "quan_he_hop_dong": {
+    "thuê viết phần mềm":  ["giao kết hợp đồng với tác giả", "chủ sở hữu quyền tác giả"],
+    "thuê ngoài":          ["giao kết hợp đồng", "giao nhiệm vụ"],
+    "outsource":           ["giao kết hợp đồng", "giao nhiệm vụ"],
+    "đặt hàng":            ["giao kết hợp đồng"],
+    "gia công phần mềm":   ["giao kết hợp đồng", "chương trình máy tính"],
+    "thuê mướn":           ["giao kết hợp đồng"],
+    "nhân viên":           ["giao nhiệm vụ", "hợp đồng lao động"],
+    "viết trong giờ làm":  ["giao nhiệm vụ"],
+    "freelancer":          ["giao kết hợp đồng", "tác giả"],
+    "không ghi trong hợp đồng": ["thỏa thuận"]
+  },
+  "chuyen_giao": {
+    "mua đứt":             ["chuyển nhượng quyền tác giả"],
+    "bán bản quyền":       ["chuyển nhượng quyền tác giả"],
+    "bán source code":     ["chuyển nhượng quyền tác giả", "quyền tài sản"],
+    "license":             ["hợp đồng sử dụng quyền tác giả"],
+    "giấy phép sử dụng":   ["hợp đồng sử dụng quyền tác giả", "chuyển quyền sử dụng"],
+    "cấp phép":            ["hợp đồng sử dụng quyền tác giả"],
+    "cho phép dùng":       ["chuyển quyền sử dụng", "quyền tác giả"],
+    "mã nguồn mở":         ["hợp đồng sử dụng quyền tác giả", "cấp phép"]
+  },
+  "khai_thac": {
+    "backup":              ["bản sao dự phòng"],
+    "bản backup":          ["bản sao dự phòng"],
+    "sao lưu":             ["bản sao dự phòng", "sao chép"],
+    "copy":                ["sao chép"],
+    "cài nhiều máy":       ["sao chép", "quyền sử dụng hợp pháp bản sao"],
+    "sửa code":            ["sửa chữa chương trình máy tính", "tác phẩm phái sinh"],
+    "chỉnh sửa":           ["sửa chữa", "nâng cấp", "tác phẩm phái sinh"],
+    "nâng cấp":            ["sửa chữa", "nâng cấp chương trình máy tính"],
+    "vá lỗi":              ["sửa chữa chương trình máy tính"],
+    "bảo trì":             ["sửa chữa", "nâng cấp"],
+    "phát triển tiếp":     ["tác phẩm phái sinh", "nâng cấp"],
+    "cho thuê phần mềm":   ["cho thuê bản sao chương trình máy tính"],
+    "phát hành":           ["phân phối", "công bố"],
+    "chạy trên cloud":     ["cung cấp dưới dạng dịch vụ", "nền trực tuyến"],
+    "saas":                ["cung cấp dưới dạng dịch vụ", "nền tảng trực tuyến"]
+  },
+  "pham_vi_bao_ho": {
+    "thuật toán":          ["ý tưởng", "quy trình", "phương pháp hoạt động", "không được bảo hộ"],
+    "ý tưởng":             ["ý tưởng", "khái niệm", "nguyên lý", "đối tượng không được bảo hộ"],
+    "giao diện":           ["tác phẩm", "bảo hộ quyền tác giả"],
+    "ai đăng ký":          ["đăng ký quyền tác giả", "chủ sở hữu quyền tác giả"],
+    "đăng ký bản quyền":   ["đăng ký quyền tác giả", "giấy chứng nhận đăng ký quyền tác giả"],
+    "bảo hộ bao lâu":      ["thời hạn bảo hộ quyền tác giả"],
+    "hết hạn bản quyền":   ["thời hạn bảo hộ quyền tác giả"]
+  },
+  "xam_pham": {
+    "vi phạm bản quyền":   ["xâm phạm quyền tác giả"],
+    "crack":               ["xâm phạm quyền tác giả", "vô hiệu hóa biện pháp công nghệ"],
+    "bẻ khóa":             ["vô hiệu hóa biện pháp công nghệ", "xâm phạm quyền tác giả"],
+    "phần mềm lậu":        ["xâm phạm quyền tác giả", "sao chép trái phép"],
+    "copy code":           ["sao chép", "xâm phạm quyền tác giả"],
+    "ăn cắp code":         ["xâm phạm quyền tác giả", "sao chép trái phép"],
+    "đạo code":            ["xâm phạm quyền tác giả", "quyền nhân thân"],
+    "kiện":                ["biện pháp bảo vệ quyền tác giả", "giải quyết tranh chấp"],
+    "bồi thường":          ["bồi thường thiệt hại", "xâm phạm quyền tác giả"],
+    "ghi tên":             ["đặt tên tác phẩm", "đứng tên tác giả", "quyền nhân thân"]
+  }
 }
 
 # Cấu hình module giám sát và cào dữ liệu hiệu lực
