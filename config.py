@@ -32,13 +32,13 @@ GEMINI_MODEL_NAME = "gemini-3.5-flash-lite"
 GEMINI_TEMPERATURE = 0.0  # Để 0 để mô hình trả lời ổn định, bám sát từng điều luật
 GEMINI_MAX_TOKENS = 4096
 GEMINI_MAX_ATTEMPTS = 3
-GEMINI_RETRY_BASE_SECONDS = 6.0
+GEMINI_RETRY_BASE_SECONDS = 10.0
 
 # Phân loại chủ đề trong phạm vi và chủ đề gây nhiễu (distractor)
 LAW_CODE = "67/VBHN-VPQH"
 
 # Tham số truy hồi văn bản
-TOP_K = 10
+TOP_K = 15
 MAX_SEQ_LENGTH = 256
 EMBEDDING_DIM = 768
 RETRIEVAL_MODE = "hybrid"      # Chế độ truy hồi mặc định: "hybrid", "dense", hoặc "bm25"
