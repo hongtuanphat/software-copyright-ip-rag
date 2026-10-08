@@ -73,3 +73,8 @@ CRAWLER_USER_AGENT = (
     "Chrome/122.0.0.0 Safari/537.36"
 )
 EXPIRY_WARNING_DAYS = 45
+
+# Cấu hình kiểm soát tần suất truy vấn (Rate Limiting) cho giao diện người dùng
+RATE_LIMIT_COOLDOWN_SECONDS = 3.0   # Khoảng nghỉ tối thiểu giữa 2 lần gửi câu hỏi liên tiếp
+RATE_LIMIT_MAX_PER_MINUTE = 12      # Số câu hỏi tối đa được gửi trong vòng 1 phút
+

@@ -40,13 +40,25 @@ def get_api_key() -> Optional[str]:
     return key_to_use
 
 
+def _clean_json_markdown(text: str) -> str:
+    """Loại bỏ khối mã markdown ```json nếu mô hình trả về kèm thẻ định dạng."""
+    cleaned = text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    return cleaned.strip()
+
+
 def generate(
     query_or_prompt: str,
     prompt: Optional[str] = None,
     hits: Optional[list[RetrievalHit]] = None,
 ) -> dict:
+    """Gọi Gemini với retry giới hạn cho các lỗi tạm thời và lỗi định dạng JSON."""
     actual_prompt = prompt if prompt is not None else query_or_prompt
-    """Gọi Gemini với retry giới hạn cho các lỗi tạm thời."""
     first_api_key = get_api_key()
     if not first_api_key:
         raise RuntimeError("Thiếu GEMINI_API_KEY; không thể sinh câu trả lời.")
@@ -60,9 +72,18 @@ def generate(
             answer_text = _call_gemini(actual_prompt, api_key)
             if not answer_text:
                 raise RuntimeError("Gemini trả về phản hồi rỗng.")
-            return json.loads(answer_text)
+            cleaned_text = _clean_json_markdown(answer_text)
+            return json.loads(cleaned_text)
         except json.JSONDecodeError as error:
-            raise RuntimeError("Gemini trả về JSON không hợp lệ.") from error
+            last_error = error
+            if attempt >= config.GEMINI_MAX_ATTEMPTS:
+                raise RuntimeError(
+                    f"Gemini trả về JSON không hợp lệ sau {attempt} lần thử. Lỗi cuối: {error}"
+                ) from error
+            time.sleep(min(
+                config.GEMINI_RETRY_BASE_SECONDS * (2 ** (attempt - 1)),
+                30.0,
+            ))
         except Exception as error:
             last_error = error
             if attempt >= config.GEMINI_MAX_ATTEMPTS or not _is_retryable_error(error):

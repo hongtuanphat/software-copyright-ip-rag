@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -10,6 +11,7 @@ if __package__ in (None, ""):
         sys.path.insert(0, str(project_root))
 
 import streamlit as st
+import config
 
 from webapp.components.chat import render_chat_messages, handle_chat_interaction
 from webapp.components.sidebar import render_sidebar
@@ -31,6 +33,8 @@ def initialize_session() -> None:
         "recent_matters": [],
         "selected_matter": "Vụ mới",
         "chats": {},
+        "query_timestamps": [],
+        "last_query_time": 0.0,
     }
     for key, default in defaults.items():
         if key not in st.session_state:
@@ -58,15 +62,35 @@ def run_app() -> None:
     if "pending_prompt" in st.session_state:
         prompt = st.session_state.pop("pending_prompt")
 
-    # Bắt đầu luồng xử lý câu hỏi mới
+    # Bắt đầu luồng xử lý câu hỏi mới với bộ điều tiết tần suất (Rate Limiting)
     if prompt and not is_processing:
-        word_count = len(prompt.split())
-        if word_count > 1500:
-            st.error(f"Câu hỏi của bạn quá dài ({word_count} từ). Vui lòng rút gọn nội dung dưới 1500 từ.")
+        now = time.time()
+        last_time = st.session_state.get("last_query_time", 0.0)
+        time_since_last = now - last_time
+
+        # 1. Kiểm tra Cooldown giữa 2 lần gửi câu hỏi liên tiếp
+        cooldown_sec = getattr(config, "RATE_LIMIT_COOLDOWN_SECONDS", 3.0)
+        if time_since_last < cooldown_sec:
+            remaining = cooldown_sec - time_since_last
+            st.warning(f"Vui lòng đợi {remaining:.1f} giây trước khi gửi câu hỏi tiếp theo để tránh vượt hạn mức hệ thống.")
         else:
-            st.session_state["processing_prompt"] = prompt
-            st.session_state["is_processing"] = True
-            st.rerun()
+            word_count = len(prompt.split())
+            if word_count > 1500:
+                st.error(f"Câu hỏi của bạn quá dài ({word_count} từ). Vui lòng rút gọn nội dung dưới 1500 từ.")
+            else:
+                # 2. Kiểm tra Rate Limit theo cửa sổ trượt 60 giây (Requests per minute)
+                max_rpm = getattr(config, "RATE_LIMIT_MAX_PER_MINUTE", 12)
+                raw_timestamps = st.session_state.get("query_timestamps", [])
+                valid_timestamps = [ts for ts in raw_timestamps if now - ts < 60.0]
+                if len(valid_timestamps) >= max_rpm:
+                    st.warning(f"Bạn đã gửi quá giới hạn cho phép ({max_rpm} câu/phút). Vui lòng đợi giây lát để hệ thống điều tiết hạn mức API.")
+                else:
+                    valid_timestamps.append(now)
+                    st.session_state["query_timestamps"] = valid_timestamps
+                    st.session_state["last_query_time"] = now
+                    st.session_state["processing_prompt"] = prompt
+                    st.session_state["is_processing"] = True
+                    st.rerun()
 
     has_messages = bool(st.session_state.get("messages"))
 

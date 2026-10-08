@@ -16,7 +16,7 @@ from typing import Any, Optional
 import config
 from generation.llm import generate
 from generation.prompt_builder import build_prompt
-from generation.refusal_gate import decide
+from generation.refusal_gate import decide, check_metric_gate
 from generation.intent_classifier import classify_query_intent
 from generation.citation import build_citations
 from ingestion.chunker import Provision
@@ -65,10 +65,12 @@ class RAGPipeline:
         mode: str = config.RETRIEVAL_MODE,
         enable_entity: bool = True,
         use_keywords: bool = True,
+        use_semantic: bool = True,
     ):
         self.mode = mode
         self.enable_entity = enable_entity
         self.use_keywords = use_keywords
+        self.use_semantic = use_semantic
         self.provisions: list[Provision] = []
         self.embedder: Any = None
         self.faiss_index: Optional[FaissFlatIndex] = None
@@ -127,20 +129,24 @@ class RAGPipeline:
                     refusal_reason="Dữ liệu chưa sẵn sàng.",
                 )
 
-        # 1. Kiểm tra ý định câu hỏi và xử lý từ chối mềm (nếu được kích hoạt)
-        if getattr(config, "ENABLE_LLM_INTENT_CLASSIFIER", False):
-            intent_res = classify_query_intent(question)
-            if intent_res.should_refuse:
-                elapsed_ms = (time.time() - start_time) * 1000.0
-                active_alerts = get_active_alerts()
-                return RAGResponse(
-                    question=question,
-                    answer=intent_res.suggested_response,
-                    should_refuse=True,
-                    refusal_reason=f"[{intent_res.intent.value}] {intent_res.reason}",
-                    execution_time_ms=elapsed_ms,
-                    active_alerts=active_alerts,
-                )
+        # 1. Cổng từ chối sớm (Pre-retrieval Gate) tích hợp phân loại ý định ngữ nghĩa và từ khóa vĩ mô
+        early_decision = decide(
+            question,
+            hits=None,
+            use_keywords=self.use_keywords,
+            use_semantic=self.use_semantic,
+        )
+        if early_decision.should_refuse:
+            elapsed_ms = (time.time() - start_time) * 1000.0
+            active_alerts = get_active_alerts()
+            return RAGResponse(
+                question=question,
+                answer=early_decision.suggested_response or early_decision.reason,
+                should_refuse=True,
+                refusal_reason=early_decision.reason,
+                execution_time_ms=elapsed_ms,
+                active_alerts=active_alerts,
+            )
 
         if self.mode == "hybrid" and self.bm25_index is not None and self.faiss_index is not None:
             hits = retrieve_hybrid(
@@ -159,8 +165,8 @@ class RAGPipeline:
         else:
             raise ValueError(f"Chế độ tìm kiếm không hợp lệ hoặc chỉ mục bị thiếu: mode='{self.mode}'")
 
-        # 3. Kiểm tra độ tin cậy kết quả qua cổng từ chối (Refusal Gate)
-        decision = decide(question, hits, use_keywords=self.use_keywords)
+        # 3. Kiểm tra độ tin cậy kết quả truy hồi qua cổng số học (Metric Gate)
+        decision = check_metric_gate(hits)
         active_alerts = get_active_alerts()
 
         # Đóng gói danh sách kết quả tìm được
@@ -248,32 +254,27 @@ class RAGPipeline:
         )
 
 
-# Biến toàn cục để dùng chung một instance pipeline duy nhất
-_global_pipeline: Optional[RAGPipeline] = None
-
-
 def get_pipeline(
     mode: str = config.RETRIEVAL_MODE,
     enable_entity: bool = True,
     use_keywords: bool = True,
+    use_semantic: bool = True,
 ) -> RAGPipeline:
-    global _global_pipeline
-    if (
-        _global_pipeline is None
-        or _global_pipeline.mode != mode
-        or _global_pipeline.enable_entity != enable_entity
-        or _global_pipeline.use_keywords != use_keywords
-    ):
-        _global_pipeline = RAGPipeline(
-            mode=mode,
-            enable_entity=enable_entity,
-            use_keywords=use_keywords,
-        )
-    return _global_pipeline
+    """Tạo một instance RAGPipeline theo cấu hình, đảm bảo tính stateless và thread-safe giữa các yêu cầu."""
+    return RAGPipeline(
+        mode=mode,
+        enable_entity=enable_entity,
+        use_keywords=use_keywords,
+        use_semantic=use_semantic,
+    )
 
 
-def answer_rag(question: str, top_k: int = config.TOP_K) -> dict[str, Any]:
-    """Hàm tiện ích gọi nhanh từ giao diện Web Streamlit."""
-    pipeline = get_pipeline()
-    response = pipeline.query(question, top_k=top_k)
+def answer_rag(
+    question: str,
+    top_k: int = config.TOP_K,
+    pipeline: Optional[RAGPipeline] = None,
+) -> dict[str, Any]:
+    """Hàm tiện ích gọi nhanh từ giao diện Web Streamlit hoặc kịch bản kiểm thử."""
+    active_pipeline = pipeline if pipeline is not None else get_pipeline()
+    response = active_pipeline.query(question, top_k=top_k)
     return response.to_dict()

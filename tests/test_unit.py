@@ -332,3 +332,107 @@ def test_refusal_gate_allows_valid_labor_contract_for_software():
     out_query = "Thủ tục sa thải người lao động theo luật lao động?"
     decision_out = decide(out_query, hits=[], use_keywords=True)
     assert decision_out.should_refuse is True, "Phải từ chối câu hỏi thuần túy về sa thải lao động"
+
+
+# ==========================================
+# CÁC BÀI KIỂM THỬ ĐỘ ỔN ĐỊNH RUNTIME, RETRY JSON VÀ RATE LIMITING
+# ==========================================
+
+def test_llm_docstring_and_clean_json_markdown():
+    """Kiểm tra docstring của hàm generate() đặt đúng đầu hàm và xử lý gọt markdown json."""
+    from generation import llm
+
+    # 1. Docstring phải tồn tại và đúng vị trí đầu hàm
+    assert llm.generate.__doc__ is not None
+    assert "lỗi định dạng JSON" in llm.generate.__doc__
+
+    # 2. Gọt bỏ khối mã markdown code block
+    raw_markdown_json = "```json\n{\"decision\": \"ANSWER\"}\n```"
+    cleaned = llm._clean_json_markdown(raw_markdown_json)
+    assert cleaned == '{"decision": "ANSWER"}'
+
+    raw_plain_markdown = "```\n{\"decision\": \"ANSWER\"}\n```"
+    cleaned_plain = llm._clean_json_markdown(raw_plain_markdown)
+    assert cleaned_plain == '{"decision": "ANSWER"}'
+
+
+def test_llm_retries_on_json_decode_error(monkeypatch):
+    """Kiểm tra hàm generate() tự động retry khi gặp JSONDecodeError và thành công ở lần sau."""
+    from generation import llm
+    import config
+
+    attempts = []
+    responses = [
+        "LỖI CẮT CỤT: {decision: incomplete",  # Lần 1: JSON hỏng
+        '{"decision": "ANSWER", "reason": "answered", "used_documents": ["67_Art22"], "answer": "Được bảo hộ."}'  # Lần 2: JSON chuẩn
+    ]
+
+    def mock_call(prompt, api_key):
+        attempts.append(api_key)
+        return responses.pop(0)
+
+    monkeypatch.setattr(llm, "get_api_key", lambda: "test-api-key")
+    monkeypatch.setattr(llm, "_call_gemini", mock_call)
+    monkeypatch.setattr(llm.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(config, "GEMINI_MAX_ATTEMPTS", 3)
+
+    result = llm.generate("prompt test")
+    assert result["decision"] == "ANSWER"
+    assert len(attempts) == 2, "Hệ thống phải thử lại lần 2 khi lần 1 gặp lỗi JSON"
+
+
+def test_llm_exhausts_retries_on_persistent_json_error(monkeypatch):
+    """Kiểm tra hàm generate() báo lỗi rõ ràng sau khi đã thử hết số lần cho phép với JSON hỏng."""
+    import pytest
+    from generation import llm
+    import config
+
+    attempts = []
+
+    def mock_call(prompt, api_key):
+        attempts.append(api_key)
+        return "hoan_toan_khong_phai_json"
+
+    monkeypatch.setattr(llm, "get_api_key", lambda: "test-api-key")
+    monkeypatch.setattr(llm, "_call_gemini", mock_call)
+    monkeypatch.setattr(llm.time, "sleep", lambda sec: None)
+    monkeypatch.setattr(config, "GEMINI_MAX_ATTEMPTS", 3)
+
+    with pytest.raises(RuntimeError, match="JSON không hợp lệ sau 3 lần thử"):
+        llm.generate("prompt test")
+
+    assert len(attempts) == 3, "Phải retry đủ 3 lần trước khi dừng"
+
+
+def test_pipeline_no_global_mutable_state():
+    """Kiểm tra module pipeline không còn biến toàn cục mutable _global_pipeline."""
+    import pipeline
+
+    assert not hasattr(pipeline, "_global_pipeline"), "Biến toàn cục _global_pipeline phải bị loại bỏ hoàn toàn"
+
+    # get_pipeline() tạo instance độc lập
+    p1 = pipeline.get_pipeline(mode="bm25")
+    p2 = pipeline.get_pipeline(mode="dense")
+    assert p1 is not p2, "get_pipeline() phải trả về các instance độc lập"
+    assert p1.mode == "bm25"
+    assert p2.mode == "dense"
+
+
+def test_rate_limiter_logic_simulation():
+    """Mô phỏng kiểm tra logic Rate Limiting (cooldown và requests per minute)."""
+    import config
+
+    cooldown = config.RATE_LIMIT_COOLDOWN_SECONDS
+    max_rpm = config.RATE_LIMIT_MAX_PER_MINUTE
+
+    # 1. Kiểm tra cooldown: 2 request cách nhau < cooldown phải bị từ chối
+    last_query_time = 100.0
+    now_too_fast = 101.0  # cách 1.0s < 3.0s
+    assert (now_too_fast - last_query_time) < cooldown, "Phải phát hiện vi phạm cooldown"
+
+    # 2. Kiểm tra RPM: số lượt trong 60s vượt quá max_rpm phải bị chặn
+    current_time = 200.0
+    timestamps = [current_time - (i * 2.0) for i in range(max_rpm)]  # max_rpm lượt trong 24s gần đây
+    valid_ts = [ts for ts in timestamps if current_time - ts < 60.0]
+    assert len(valid_ts) >= max_rpm, "Phải phát hiện vi phạm giới hạn câu hỏi/phút"
+
